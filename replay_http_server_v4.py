@@ -223,6 +223,7 @@ class ReplayFile:
             'favorite': is_favorite,
             'hidden': is_hidden,
             'category': category,
+            'category_color': categories.get(category) if category else None,
             'in_queue': in_queue_index >= 0,
             'queue_index': in_queue_index,
             'extension': self.extension,
@@ -658,11 +659,19 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                     if len(playlist_queue) > 0:
                         next_item = playlist_queue[0]
                         next_path = next_item['path']
-                        current_playing_video = next_path
+
+                        # Rispetta l'impostazione auto_play_on_load
+                        if auto_play_on_load:
+                            current_playing_video = next_path
+                            current_ready_video = None
+                        else:
+                            current_ready_video = next_path
+                            current_playing_video = None
 
                         action_queue.put({
                             'action': 'load_replay',
-                            'path': next_path
+                            'path': next_path,
+                            'auto_play': auto_play_on_load
                         })
 
                         # Applica velocità corrente
@@ -671,9 +680,10 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                             'speed': current_speed
                         })
 
-                        self.send_json({'success': True, 'has_next': len(playlist_queue) > 1})
+                        self.send_json({'success': True, 'has_next': len(playlist_queue) > 1, 'auto_play': auto_play_on_load})
                     else:
                         current_playing_video = None
+                        current_ready_video = None
                         self.send_json({'success': True, 'has_next': False})
                 else:
                     self.send_json({'success': False, 'error': 'Queue empty'})
@@ -902,7 +912,7 @@ def get_html_interface():
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Replay Manager Pro v4</title>
+<title>OBS Instant Replay</title>
 <style>
 /* ==================== CSS VARIABLES - THEMES ==================== */
 :root {
@@ -1189,6 +1199,13 @@ body {
     color: var(--text-primary);
     cursor: pointer;
     font-size: 13px;
+    font-weight: 500;
+    min-width: 180px;
+}
+
+.category-select option {
+    padding: 8px;
+    font-weight: 500;
 }
 
 /* ==================== VIDEO GRID ==================== */
@@ -1245,13 +1262,7 @@ body {
     transition: opacity 0.3s ease;
 }
 
-.video-card:hover .video-thumbnail video {
-    opacity: 1;
-}
-
-.video-card:hover .video-thumbnail img {
-    opacity: 0;
-}
+/* Rimosso hover video per evitare glitch */
 
 .video-badges {
     position: absolute;
@@ -2200,8 +2211,8 @@ input:checked + .slider:before {
 <div class="header">
     <div class="header-top">
         <div class="header-logo">
-            <span class="header-logo-icon">🎬</span>
-            <span>Replay Manager Pro</span>
+            <span class="header-logo-icon">⚡</span>
+            <span>OBS Instant Replay</span>
         </div>
 
         <div class="header-actions">
@@ -2356,7 +2367,7 @@ input:checked + .slider:before {
     <div class="modal-content" style="width: 700px;">
         <div class="modal-header">
             <h2>✨ Highlights Creati</h2>
-            <button class="modal-close" onclick="closeHighlightsModal()">✕</button>
+            <button class="modal-close-btn" onclick="closeHighlightsModal()">✕</button>
         </div>
 
         <div class="modal-body">
@@ -2925,7 +2936,8 @@ function createVideoCard(replay) {
     }
 
     if (replay.category) {
-        badges.push(`<div class="video-badge badge-category">${replay.category}</div>`);
+        const categoryColor = replay.category_color || '#888';
+        badges.push(`<div class="video-badge badge-category" style="background-color: ${categoryColor}; color: white;">${replay.category}</div>`);
     }
 
     if (replay.in_queue) {
@@ -2989,7 +3001,10 @@ async function addToQueue(index) {
 async function loadVideo(index) {
     const result = await apiCall('/api/load', 'POST', { index });
     if (result && result.success) {
-        showNotification('Video caricato in OBS', 'success');
+        const mode = result.auto_play ? 'LIVE (avvio automatico)' : 'READY (pronto per avvio)';
+        showNotification(`Video caricato: ${mode}`, 'success');
+        // Forza refresh immediato per mostrare badge
+        await loadReplays();
     }
 }
 
@@ -3590,8 +3605,13 @@ function updateCategoryFilter() {
     const select = document.getElementById('category-filter');
     select.innerHTML = '<option value="">Tutte le categorie</option>';
 
-    Object.keys(categories).forEach(name => {
-        select.innerHTML += `<option value="${name}">${name}</option>`;
+    Object.entries(categories).forEach(([name, data]) => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = `${name} (${data.count})`;
+        option.style.color = data.color;
+        option.style.fontWeight = '500';
+        select.appendChild(option);
     });
 }
 
