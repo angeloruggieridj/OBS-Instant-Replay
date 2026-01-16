@@ -44,6 +44,8 @@ current_speed = 1.0  # Velocità di riproduzione corrente
 current_theme = "default"  # Tema corrente
 card_zoom = 200  # Dimensione card (120-320px)
 current_playing_video = None  # Path del video attualmente in riproduzione
+current_ready_video = None  # Path del video caricato ma non avviato (READY)
+auto_play_on_load = True  # Se True avvia automaticamente, se False carica solo (READY)
 last_scan_time = None  # Timestamp dell'ultimo scan
 video_durations_cache = {}  # Cache delle durate video {path: seconds}
 highlights_files = []  # Lista dei file highlights creati
@@ -61,7 +63,7 @@ def init_data_file():
 def load_persistent_data():
     """Carica dati persistenti da JSON"""
     global favorites, playlist_queue, categories, video_categories, hidden_videos
-    global current_theme, card_zoom, current_speed, highlights_files
+    global current_theme, card_zoom, current_speed, highlights_files, auto_play_on_load
 
     if not DATA_FILE or not os.path.exists(DATA_FILE):
         return
@@ -79,6 +81,7 @@ def load_persistent_data():
         card_zoom = data.get('card_zoom', 200)
         current_speed = data.get('current_speed', 1.0)
         highlights_files = data.get('highlights_files', [])
+        auto_play_on_load = data.get('auto_play_on_load', True)
 
         print(f"[DATA] Caricati: {len(favorites)} preferiti, {len(playlist_queue)} in coda, {len(categories)} categorie")
     except Exception as e:
@@ -99,7 +102,8 @@ def save_persistent_data():
             'current_theme': current_theme,
             'card_zoom': card_zoom,
             'current_speed': current_speed,
-            'highlights_files': highlights_files
+            'highlights_files': highlights_files,
+            'auto_play_on_load': auto_play_on_load
         }
 
         with open(DATA_FILE, 'w', encoding='utf-8') as f:
@@ -204,8 +208,9 @@ class ReplayFile:
             secs = int(duration % 60)
             duration_str = f"{mins}:{secs:02d}"
 
-        # Verifica se è il video in riproduzione
+        # Verifica lo stato del video
         is_playing = (self.path == current_playing_video)
+        is_ready = (self.path == current_ready_video)
 
         return {
             'path': self.path,
@@ -224,7 +229,8 @@ class ReplayFile:
             'mime_type': self.get_mime_type(),
             'duration': duration,
             'duration_str': duration_str,
-            'is_playing': is_playing
+            'is_playing': is_playing,
+            'is_ready': is_ready
         }
 
     def get_size_str(self):
@@ -432,7 +438,8 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                 'refresh_interval': refresh_interval_seconds,
                 'current_speed': current_speed,
                 'current_theme': current_theme,
-                'card_zoom': card_zoom
+                'card_zoom': card_zoom,
+                'auto_play_on_load': auto_play_on_load
             })
 
         elif path == '/api/scan':
@@ -503,8 +510,8 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
 
     
     def do_POST(self):
-        global current_playing_video, current_speed, current_theme, card_zoom
-        global video_categories, favorites, hidden_videos, playlist_queue, categories
+        global current_playing_video, current_ready_video, current_speed, current_theme, card_zoom
+        global video_categories, favorites, hidden_videos, playlist_queue, categories, auto_play_on_load
 
         try:
             parsed_path = urllib.parse.urlparse(self.path)
@@ -525,12 +532,23 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
             elif path == '/api/load':
                 index = data.get('index', -1)
                 if 0 <= index < len(replay_files):
-                    current_playing_video = replay_files[index].path
+                    video_path = replay_files[index].path
+
+                    # Determina se avviare o solo caricare
+                    if auto_play_on_load:
+                        # Modalità LIVE: avvia riproduzione
+                        current_playing_video = video_path
+                        current_ready_video = None
+                    else:
+                        # Modalità READY: carica senza avviare
+                        current_ready_video = video_path
+                        current_playing_video = None
 
                     action_queue.put({
                         'action': 'load_replay',
                         'index': index,
-                        'path': replay_files[index].path
+                        'path': video_path,
+                        'auto_play': auto_play_on_load
                     })
 
                     # Applica velocità corrente
@@ -539,7 +557,7 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                         'speed': current_speed
                     })
 
-                    self.send_json({'success': True})
+                    self.send_json({'success': True, 'auto_play': auto_play_on_load})
                 else:
                     self.send_json({'success': False})
 
@@ -731,6 +749,12 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                 current_theme = theme
                 save_persistent_data()
                 self.send_json({'success': True, 'theme': current_theme})
+
+            elif path == '/api/auto-play':
+                auto_play = data.get('auto_play', True)
+                auto_play_on_load = bool(auto_play)
+                save_persistent_data()
+                self.send_json({'success': True, 'auto_play': auto_play_on_load})
 
             elif path == '/api/zoom':
                 zoom = data.get('zoom', 200)
@@ -1189,8 +1213,8 @@ body {
 }
 
 .video-card:hover {
-    transform: translateY(-8px) scale(1.02);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
     border-color: var(--accent-primary);
 }
 
@@ -1277,6 +1301,20 @@ body {
     border: 2px solid white;
     z-index: 10;
     animation: pulse 1.5s infinite;
+}
+
+.badge-ready {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #ff9800;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    border: 2px solid white;
+    z-index: 10;
 }
 
 @keyframes pulse {
@@ -1400,7 +1438,6 @@ body {
 
 .video-action-btn:hover {
     background: var(--bg-hover);
-    transform: scale(1.05);
 }
 
 .video-action-btn.active {
@@ -1756,6 +1793,52 @@ body {
     font-size: 12px;
     color: var(--text-secondary);
     margin-top: 4px;
+}
+
+/* Toggle Switch */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 24px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: var(--accent-primary);
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
 }
 
 .settings-input {
@@ -2331,6 +2414,20 @@ body {
                     </div>
                 </div>
 
+                <div class="settings-section">
+                    <div class="settings-section-title">Comportamento Riproduzione</div>
+                    <div class="settings-item">
+                        <div>
+                            <div class="settings-item-label">Avvio automatico</div>
+                            <div class="settings-item-description">Se attivo, i video si avviano automaticamente (badge LIVE). Se disattivo, vengono solo caricati (badge READY) e puoi avviarli manualmente (es. con Stream Deck)</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="auto-play-toggle" checked onchange="toggleAutoPlay()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
             </div>
 
             <!-- Categories Panel -->
@@ -2584,12 +2681,16 @@ async function loadConfig() {
         currentSpeed = data.current_speed || 1.0;
         currentTheme = data.current_theme || 'default';
         cardZoom = data.card_zoom || 200;
+        const autoPlay = data.auto_play_on_load !== undefined ? data.auto_play_on_load : true;
 
         // Apply loaded config
         document.body.setAttribute('data-theme', currentTheme);
         document.getElementById('zoom-slider').value = cardZoom;
         setZoom(cardZoom);
         updateSpeedDisplay();
+
+        // Update auto-play toggle
+        document.getElementById('auto-play-toggle').checked = autoPlay;
 
         // Update current folder in settings
         if (data.replay_folder) {
@@ -2811,8 +2912,13 @@ function renderVideoGrid(replays = allReplays) {
 function createVideoCard(replay) {
     const badges = [];
 
-    // Badge LIVE separato (non in badges array, posizionato a destra)
-    const liveBadge = replay.is_playing ? '<div class="badge-live">● LIVE</div>' : '';
+    // Badge LIVE o READY (separato, posizionato a destra)
+    let statusBadge = '';
+    if (replay.is_playing) {
+        statusBadge = '<div class="badge-live">● LIVE</div>';
+    } else if (replay.is_ready) {
+        statusBadge = '<div class="badge-ready">● READY</div>';
+    }
 
     if (replay.favorite) {
         badges.push('<div class="video-badge badge-favorite">⭐ Preferito</div>');
@@ -2839,7 +2945,7 @@ function createVideoCard(replay) {
                     <source src="/api/video/${replay.index}" type="${replay.mime_type}">
                     <source src="/api/video/${replay.index}">
                 </video>
-                ${liveBadge}
+                ${statusBadge}
                 <div class="video-badges">
                     ${badges.join('')}
                 </div>
@@ -3521,6 +3627,15 @@ async function deleteCategory(name) {
             await loadReplays();
             showNotification('Categoria eliminata', 'success');
         }
+    }
+}
+
+async function toggleAutoPlay() {
+    const autoPlay = document.getElementById('auto-play-toggle').checked;
+    const result = await apiCall('/api/auto-play', 'POST', { auto_play: autoPlay });
+    if (result && result.success) {
+        const mode = autoPlay ? 'LIVE (avvio automatico)' : 'READY (caricamento solo)';
+        showNotification(`Modalità impostata: ${mode}`, 'success');
     }
 }
 

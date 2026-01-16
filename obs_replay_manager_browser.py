@@ -47,7 +47,7 @@ server_port = 8765
 dock_created = False
 
 
-def load_replay_to_source(file_path):
+def load_replay_to_source(file_path, auto_play=True):
     """Carica un replay nella fonte multimediale"""
     global media_source_name, target_scene_name, auto_switch_scene
     
@@ -92,7 +92,13 @@ def load_replay_to_source(file_path):
         
         obs.obs_source_update(source, settings)
         obs.obs_data_release(settings)
-        obs.obs_source_media_restart(source)
+
+        # Avvia solo se auto_play è True
+        if auto_play:
+            obs.obs_source_media_restart(source)
+        else:
+            # Carica ma non avviare (READY mode)
+            obs.obs_source_media_stop(source)
         
         if auto_switch_scene:
             scenes = obs.obs_frontend_get_scenes()
@@ -401,9 +407,9 @@ def check_actions_timer():
     if not SERVER_AVAILABLE:
         return
 
-    # Controlla se la riproduzione è terminata
+    # Controlla lo stato della media source
     try:
-        if media_source_name and target_scene_name and server.current_playing_video:
+        if media_source_name and target_scene_name and (server.current_playing_video or server.current_ready_video):
             scenes = obs.obs_frontend_get_scenes()
             for scene_source in scenes:
                 if obs.obs_source_get_name(scene_source) == target_scene_name:
@@ -415,9 +421,18 @@ def check_actions_timer():
                         if source:
                             # Controlla lo stato della media source
                             media_state = obs.obs_source_media_get_state(source)
-                            # OBS_MEDIA_STATE_ENDED = 5
-                            if media_state == 5:
-                                # Riproduzione terminata, resetta il current_playing_video
+                            # OBS_MEDIA_STATE_STOPPED = 1, OBS_MEDIA_STATE_PLAYING = 2, OBS_MEDIA_STATE_ENDED = 5
+
+                            if media_state == 5:  # ENDED
+                                # Riproduzione terminata
+                                server.current_playing_video = None
+                                server.current_ready_video = None
+                            elif media_state == 2 and server.current_ready_video:  # PLAYING
+                                # Video READY è stato avviato manualmente, passa a LIVE
+                                server.current_playing_video = server.current_ready_video
+                                server.current_ready_video = None
+                            elif media_state == 1 and server.current_playing_video:  # STOPPED
+                                # Video LIVE è stato fermato manualmente
                                 server.current_playing_video = None
                     break
             obs.source_list_release(scenes)
@@ -431,17 +446,22 @@ def check_actions_timer():
             action_type = action.get('action')
 
             if action_type == 'load_replay':
+                # Ottieni auto_play dalla action
+                auto_play = action.get('auto_play', True)
+
                 # Verifica se c'è un path diretto (per highlights) o un index
                 if 'path' in action:
                     # Carica da path diretto
-                    load_replay_to_source(action['path'])
-                    print(f"✓ Highlights caricato: {os.path.basename(action['path'])}")
+                    load_replay_to_source(action['path'], auto_play)
+                    status = "LIVE" if auto_play else "READY"
+                    print(f"✓ Highlights caricato ({status}): {os.path.basename(action['path'])}")
                 else:
                     # Carica da index
                     index = action.get('index', 0)
                     if 0 <= index < len(server.replay_files):
-                        load_replay_to_source(server.replay_files[index].path)
-                        print(f"✓ Replay caricato da web UI: {server.replay_files[index].name}")
+                        load_replay_to_source(server.replay_files[index].path, auto_play)
+                        status = "LIVE" if auto_play else "READY"
+                        print(f"✓ Replay caricato ({status}): {server.replay_files[index].name}")
 
             elif action_type == 'open_folder':
                 # Apri la cartella replay
