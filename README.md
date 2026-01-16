@@ -1,4 +1,4 @@
-# OBS Replay Manager
+# OBS Instant Replay
 
 Sistema avanzato di gestione replay per OBS Studio con interfaccia web integrata.
 
@@ -18,11 +18,6 @@ Sistema avanzato di gestione replay per OBS Studio con interfaccia web integrata
   - Zoom dimensione card (120-320px)
   - Temi chiaro/scuro
   - Creazione video highlights dai preferiti
-
-- **Ottimizzazioni Windows**:
-  - Nessuna finestra CMD durante rendering anteprime
-  - Chiusura pulita senza deadlock
-  - Gestione robusta degli errori di comunicazione
 
 ## File Principali
 
