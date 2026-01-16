@@ -148,12 +148,12 @@ def get_video_duration(video_path):
             video_path
         ]
 
-        result = subprocess.run(
-            ffprobe_cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=5
-        )
+        subprocess_args = get_ffmpeg_subprocess_args()
+        subprocess_args['stdout'] = subprocess.PIPE
+        subprocess_args['stderr'] = subprocess.PIPE
+        subprocess_args['timeout'] = 5
+
+        result = subprocess.run(ffprobe_cmd, **subprocess_args)
 
         if result.returncode == 0 and result.stdout:
             duration = float(result.stdout.decode('utf-8').strip())
@@ -249,6 +249,9 @@ def scan_replay_folder():
     try:
         old_count = len(replay_files)
         video_extensions = ('.mp4', '.mkv', '.mov', '.avi', '.flv', '.webm')
+
+        # Ottimizzazione: mappa dei file esistenti per riuso oggetti immutati
+        existing_files_map = {rf.path: rf for rf in replay_files}
         files = []
 
         for file in os.listdir(replay_folder):
@@ -258,11 +261,22 @@ def scan_replay_folder():
 
                 full_path = os.path.join(replay_folder, file)
                 if os.path.isfile(full_path):
+                    mtime = os.path.getmtime(full_path)
+                    fsize = os.path.getsize(full_path)
+
+                    # Riusa oggetto esistente se non modificato
+                    if full_path in existing_files_map:
+                        existing_rf = existing_files_map[full_path]
+                        if existing_rf.modified == mtime and existing_rf.size == fsize:
+                            files.append(existing_rf)
+                            continue
+
+                    # File nuovo o modificato
                     files.append(ReplayFile(
                         path=full_path,
                         name=file,
-                        modified=os.path.getmtime(full_path),
-                        size=os.path.getsize(full_path)
+                        modified=mtime,
+                        size=fsize
                     ))
 
         files.sort(key=lambda x: x.modified, reverse=True)
@@ -723,6 +737,10 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                 card_zoom = max(120, min(320, zoom))
                 save_persistent_data()
                 self.send_json({'success': True, 'zoom': card_zoom})
+
+            elif path == '/api/playing/clear':
+                current_playing_video = None
+                self.send_json({'success': True})
 
             elif path == '/api/create-highlights':
                 use_queue = data.get('use_queue', True)

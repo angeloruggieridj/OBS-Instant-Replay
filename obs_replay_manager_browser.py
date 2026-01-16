@@ -400,13 +400,36 @@ def check_actions_timer():
     """Timer che controlla se ci sono azioni da eseguire"""
     if not SERVER_AVAILABLE:
         return
-    
+
+    # Controlla se la riproduzione è terminata
+    try:
+        if media_source_name and target_scene_name and server.current_playing_video:
+            scenes = obs.obs_frontend_get_scenes()
+            for scene_source in scenes:
+                if obs.obs_source_get_name(scene_source) == target_scene_name:
+                    target_scene = obs.obs_scene_from_source(scene_source)
+                    scene_item = obs.obs_scene_find_source(target_scene, media_source_name)
+
+                    if scene_item:
+                        source = obs.obs_sceneitem_get_source(scene_item)
+                        if source:
+                            # Controlla lo stato della media source
+                            media_state = obs.obs_source_media_get_state(source)
+                            # OBS_MEDIA_STATE_ENDED = 5
+                            if media_state == 5:
+                                # Riproduzione terminata, resetta il current_playing_video
+                                server.current_playing_video = None
+                    break
+            obs.source_list_release(scenes)
+    except Exception as e:
+        pass
+
     # Controlla se ci sono azioni pendenti dalla web UI
     try:
         action = server.get_pending_action()
         if action:
             action_type = action.get('action')
-            
+
             if action_type == 'load_replay':
                 # Verifica se c'è un path diretto (per highlights) o un index
                 if 'path' in action:
@@ -419,12 +442,12 @@ def check_actions_timer():
                     if 0 <= index < len(server.replay_files):
                         load_replay_to_source(server.replay_files[index].path)
                         print(f"✓ Replay caricato da web UI: {server.replay_files[index].name}")
-            
+
             elif action_type == 'open_folder':
                 # Apri la cartella replay
                 open_replay_folder()
                 print("✓ Cartella replay aperta da web UI")
-    
+
     except Exception as e:
         print(f"Errore processing azione: {e}")
 
