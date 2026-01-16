@@ -504,7 +504,11 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
             except:
                 data = {}
 
-            if path == '/api/load':
+            if path == '/api/scan':
+                scan_replay_folder()
+                self.send_json({'success': True, 'count': len(replay_files)})
+
+            elif path == '/api/load':
                 index = data.get('index', -1)
                 if 0 <= index < len(replay_files):
                     current_playing_video = replay_files[index].path
