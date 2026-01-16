@@ -1173,6 +1173,7 @@ body {
     grid-template-columns: repeat(auto-fill, minmax(var(--card-width, 200px), 1fr));
     gap: 20px;
     padding: 20px;
+    padding-bottom: 100px; /* Spazio per bottom-bar fisso */
     animation: fadeIn 0.5s ease;
 }
 
@@ -2065,6 +2066,7 @@ body {
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
         gap: 15px;
         padding: 15px;
+        padding-bottom: 120px; /* Maggiore spazio su mobile per bottom-bar più alto */
     }
 
     .bottom-bar {
@@ -2524,7 +2526,10 @@ async function init() {
 }
 
 function startAutoRefresh() {
-    const interval = 3000; // 3 seconds
+    const scanInterval = 3000; // 3 seconds per scan completo
+    const statusInterval = 1000; // 1 secondo per aggiornamento stato riproduzione
+
+    // Auto-refresh completo ogni 3 secondi (con scan)
     if (autoRefreshInterval) clearInterval(autoRefreshInterval);
     autoRefreshInterval = setInterval(async () => {
         // FORZA scan prima di ricaricare
@@ -2542,7 +2547,12 @@ function startAutoRefresh() {
         if (lastScanElement) {
             lastScanElement.textContent = timeStr;
         }
-    }, interval);
+    }, scanInterval);
+
+    // Refresh leggero ogni secondo solo per stato riproduzione (senza scan)
+    setInterval(async () => {
+        await loadReplays();
+    }, statusInterval);
 }
 
 // ==================== API CALLS ====================
