@@ -232,6 +232,32 @@ def check_for_updates():
         }
 
 
+def browse_folder_dialog():
+    """Apre un dialog nativo per selezionare una cartella"""
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+
+        # Crea una finestra root nascosta
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes('-topmost', True)  # Porta in primo piano
+
+        # Apre il dialog per selezionare la cartella
+        folder_path = filedialog.askdirectory(
+            title="Seleziona la cartella dei Replay",
+            initialdir=replay_folder if replay_folder else None
+        )
+
+        root.destroy()
+
+        return folder_path if folder_path else None
+
+    except Exception as e:
+        print(f"[BROWSE] Errore apertura dialog: {e}")
+        return None
+
+
 def download_and_install_update(asset_url, asset_name):
     """Scarica e installa l'aggiornamento"""
     try:
@@ -995,6 +1021,14 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                     'action': 'open_folder'
                 })
                 self.send_json({'success': True})
+
+            elif path == '/api/browse-folder':
+                # Apre un dialog nativo per selezionare una cartella
+                selected = browse_folder_dialog()
+                if selected:
+                    self.send_json({'success': True, 'path': selected})
+                else:
+                    self.send_json({'success': False, 'error': 'Nessuna cartella selezionata'})
 
             elif path == '/api/install-update':
                 asset_url = data.get('url', '')
@@ -2791,9 +2825,9 @@ body {
         <div class="modal-body">
             <div class="settings-tabs">
                 <button class="settings-tab active" onclick="switchSettingsTab('general')">Generale</button>
+                <button class="settings-tab" onclick="switchSettingsTab('obs')">OBS</button>
                 <button class="settings-tab" onclick="switchSettingsTab('categories')">Categorie</button>
                 <button class="settings-tab" onclick="switchSettingsTab('themes')">Temi</button>
-                <button class="settings-tab" onclick="switchSettingsTab('advanced')">Avanzate</button>
                 <button class="settings-tab" onclick="switchSettingsTab('info')">About</button>
             </div>
 
@@ -2807,7 +2841,7 @@ body {
                             <div class="settings-item-description" id="current-folder" style="word-break: break-all;">Non configurata</div>
                         </div>
                         <div style="display: flex; gap: 6px;">
-                            <button class="header-btn" onclick="switchSettingsTab('advanced')">Configura</button>
+                            <button class="header-btn" onclick="switchSettingsTab('obs')">Configura</button>
                             <button class="header-btn" onclick="openFolder()">Apri</button>
                         </div>
                     </div>
@@ -2874,8 +2908,8 @@ body {
                 </div>
             </div>
 
-            <!-- Advanced Panel -->
-            <div class="settings-panel" id="panel-advanced">
+            <!-- OBS Panel -->
+            <div class="settings-panel" id="panel-obs">
                 <div class="settings-section">
                     <div class="settings-section-title">Configurazione OBS</div>
                     <div class="settings-item" style="flex-direction: column; align-items: stretch; gap: 8px;">
@@ -3197,20 +3231,28 @@ async function saveOBSSettings() {
     }
 }
 
-function browseFolder() {
-    // Nel browser non possiamo aprire un file picker nativo per le cartelle
-    // L'utente deve inserire manualmente il percorso
-    const currentPath = document.getElementById('replay-folder-path').value;
-    const newPath = prompt(
-        'Inserisci il percorso completo della cartella replay:\\n\\n' +
-        'Esempio Windows: C:\\\\Users\\\\Nome\\\\Videos\\\\Replay\\n' +
-        'Esempio Mac/Linux: /home/utente/Videos/Replay',
-        currentPath
-    );
+async function browseFolder() {
+    // Usa l'API del server per aprire il dialog nativo del sistema operativo
+    const btn = event.target.closest('button');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span>⏳</span><span>Apertura...</span>';
+    btn.disabled = true;
 
-    if (newPath !== null && newPath.trim() !== '') {
-        document.getElementById('replay-folder-path').value = newPath.trim();
+    try {
+        const result = await apiCall('/api/browse-folder', 'POST', {});
+
+        if (result && result.success && result.path) {
+            document.getElementById('replay-folder-path').value = result.path;
+            showNotification('Cartella selezionata', 'success');
+        } else if (result && !result.success) {
+            // L'utente ha annullato, nessun messaggio di errore
+        }
+    } catch (e) {
+        showNotification('Errore apertura dialog', 'error');
     }
+
+    btn.innerHTML = originalText;
+    btn.disabled = false;
 }
 
 async function loadReplays() {
