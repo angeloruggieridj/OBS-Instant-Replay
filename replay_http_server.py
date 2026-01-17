@@ -31,7 +31,8 @@ import tempfile
 # Versione corrente
 VERSION = "1.0-beta1"
 GITHUB_REPO = "angeloruggieridj/OBS-Instant-Replay"
-GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+GITHUB_RELEASES_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+GITHUB_TAGS_URL = f"https://api.github.com/repos/{GITHUB_REPO}/tags"
 
 # Variabili globali
 replay_folder = ""
@@ -126,48 +127,84 @@ def save_persistent_data():
 def check_for_updates():
     """Verifica se sono disponibili aggiornamenti da GitHub"""
     try:
-        req = urllib.request.Request(
-            GITHUB_API_URL,
-            headers={'User-Agent': 'OBS-Instant-Replay'}
-        )
-        with urllib.request.urlopen(req, timeout=10) as response:
-            data = json.loads(response.read().decode('utf-8'))
+        # Prima prova con le release
+        try:
+            req = urllib.request.Request(
+                GITHUB_RELEASES_URL,
+                headers={'User-Agent': 'OBS-Instant-Replay'}
+            )
+            with urllib.request.urlopen(req, timeout=10) as response:
+                data = json.loads(response.read().decode('utf-8'))
 
-        latest_version = data.get('tag_name', '').lstrip('v')
-        release_notes = data.get('body', '')
-        release_url = data.get('html_url', '')
-        published_at = data.get('published_at', '')
+            latest_version = data.get('tag_name', '').lstrip('v')
+            release_notes = data.get('body', '')
+            release_url = data.get('html_url', '')
+            published_at = data.get('published_at', '')
 
-        # Trova gli asset scaricabili
-        assets = []
-        for asset in data.get('assets', []):
-            assets.append({
-                'name': asset.get('name'),
-                'download_url': asset.get('browser_download_url'),
-                'size': asset.get('size', 0)
-            })
+            # Trova gli asset scaricabili
+            assets = []
+            for asset in data.get('assets', []):
+                assets.append({
+                    'name': asset.get('name'),
+                    'download_url': asset.get('browser_download_url'),
+                    'size': asset.get('size', 0)
+                })
 
-        # Confronta versioni
-        current = VERSION.replace('-', '.').replace('beta', '0.')
-        latest = latest_version.replace('-', '.').replace('beta', '0.')
+            is_update_available = latest_version != VERSION
 
-        is_update_available = latest_version != VERSION
+            return {
+                'success': True,
+                'current_version': VERSION,
+                'latest_version': latest_version,
+                'update_available': is_update_available,
+                'release_notes': release_notes,
+                'release_url': release_url,
+                'published_at': published_at,
+                'assets': assets
+            }
 
-        return {
-            'success': True,
-            'current_version': VERSION,
-            'latest_version': latest_version,
-            'update_available': is_update_available,
-            'release_notes': release_notes,
-            'release_url': release_url,
-            'published_at': published_at,
-            'assets': assets
-        }
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                # Nessuna release, prova con i tags
+                req = urllib.request.Request(
+                    GITHUB_TAGS_URL,
+                    headers={'User-Agent': 'OBS-Instant-Replay'}
+                )
+                with urllib.request.urlopen(req, timeout=10) as response:
+                    tags = json.loads(response.read().decode('utf-8'))
+
+                if tags and len(tags) > 0:
+                    latest_tag = tags[0].get('name', '').lstrip('v')
+                    is_update_available = latest_tag != VERSION
+
+                    return {
+                        'success': True,
+                        'current_version': VERSION,
+                        'latest_version': latest_tag,
+                        'update_available': is_update_available,
+                        'release_notes': 'Nessuna nota di rilascio disponibile (solo tag)',
+                        'release_url': f'https://github.com/{GITHUB_REPO}/releases/tag/v{latest_tag}',
+                        'published_at': '',
+                        'assets': []
+                    }
+                else:
+                    return {
+                        'success': True,
+                        'current_version': VERSION,
+                        'latest_version': VERSION,
+                        'update_available': False,
+                        'release_notes': '',
+                        'release_url': '',
+                        'published_at': '',
+                        'assets': []
+                    }
+            else:
+                raise
 
     except urllib.error.URLError as e:
         return {
             'success': False,
-            'error': f'Errore di connessione: {str(e)}',
+            'error': f'Errore di connessione: {str(e.reason)}',
             'current_version': VERSION
         }
     except Exception as e:
@@ -2712,7 +2749,7 @@ body {
                 <button class="settings-tab" onclick="switchSettingsTab('categories')">Categorie</button>
                 <button class="settings-tab" onclick="switchSettingsTab('themes')">Temi</button>
                 <button class="settings-tab" onclick="switchSettingsTab('advanced')">Avanzate</button>
-                <button class="settings-tab" onclick="switchSettingsTab('info')">Info</button>
+                <button class="settings-tab" onclick="switchSettingsTab('info')">About</button>
             </div>
 
             <!-- General Panel -->
@@ -2750,32 +2787,6 @@ body {
                             <input type="checkbox" id="auto-play-toggle" checked onchange="toggleAutoPlay()">
                             <span class="slider"></span>
                         </label>
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <div class="settings-section-title">Aggiornamenti Software</div>
-                    <div class="settings-item" style="flex-direction: column; align-items: flex-start; gap: 12px;">
-                        <div style="display: flex; width: 100%; justify-content: space-between; align-items: center;">
-                            <div>
-                                <div class="settings-item-label">Versione corrente: <span id="current-version">--</span></div>
-                                <div class="settings-item-description" id="update-status">Clicca per verificare aggiornamenti</div>
-                            </div>
-                            <button class="header-btn" id="check-updates-btn" onclick="checkForUpdates()">
-                                <span>🔄</span>
-                                <span>Verifica aggiornamenti</span>
-                            </button>
-                        </div>
-                        <div id="update-info" style="display: none; width: 100%; padding: 12px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                <div>
-                                    <strong style="color: var(--accent-success);">Nuova versione disponibile: <span id="new-version">--</span></strong>
-                                </div>
-                                <a id="release-link" href="#" target="_blank" style="color: var(--accent-primary); font-size: 12px;">Vedi su GitHub</a>
-                            </div>
-                            <div id="release-notes" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; max-height: 100px; overflow-y: auto;"></div>
-                            <div id="update-assets" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
-                        </div>
                     </div>
                 </div>
 
@@ -2847,31 +2858,58 @@ body {
                 </div>
             </div>
 
-            <!-- Info Panel -->
+            <!-- About Panel -->
             <div class="settings-panel" id="panel-info">
                 <div class="settings-section">
-                    <div class="settings-section-title">Informazioni</div>
-                    <div class="settings-item">
-                        <div class="settings-item-label">Versione</div>
-                        <div class="settings-item-description">4.0.0</div>
+                    <div class="settings-section-title">OBS Instant Replay</div>
+                    <div class="settings-item" style="flex-direction: column; align-items: flex-start; gap: 12px;">
+                        <div style="display: flex; width: 100%; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div class="settings-item-label">Versione corrente: <span id="current-version">--</span></div>
+                                <div class="settings-item-description" id="update-status">Clicca per verificare aggiornamenti</div>
+                            </div>
+                            <button class="header-btn" id="check-updates-btn" onclick="checkForUpdates()">
+                                <span>🔄</span>
+                                <span>Verifica</span>
+                            </button>
+                        </div>
+                        <div id="update-info" style="display: none; width: 100%; padding: 12px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <div>
+                                    <strong style="color: var(--accent-success);">Nuova versione disponibile: <span id="new-version">--</span></strong>
+                                </div>
+                                <a id="release-link" href="#" target="_blank" style="color: var(--accent-primary); font-size: 12px;">Vedi su GitHub</a>
+                            </div>
+                            <div id="release-notes" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; max-height: 100px; overflow-y: auto;"></div>
+                            <div id="update-assets" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+                        </div>
                     </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="settings-section-title">Informazioni</div>
                     <div class="settings-item">
                         <div class="settings-item-label">Server HTTP</div>
                         <div class="settings-item-description" id="server-url">http://localhost:8765</div>
                     </div>
                     <div class="settings-item">
+                        <div class="settings-item-label">Repository</div>
+                        <div class="settings-item-description">
+                            <a href="https://github.com/angeloruggieridj/OBS-Instant-Replay" target="_blank" style="color: var(--accent-primary);">github.com/angeloruggieridj/OBS-Instant-Replay</a>
+                        </div>
+                    </div>
+                    <div class="settings-item">
                         <div>
                             <div class="settings-item-label">Funzionalità</div>
                             <div class="settings-item-description">
-                                • Sistema preferiti/favorites<br>
-                                • Playlist/Queue management<br>
+                                • Sistema preferiti<br>
+                                • Playlist e code<br>
                                 • Categorie personalizzate<br>
-                                • Video nascosti<br>
+                                • Modalità READY/LIVE<br>
                                 • Ricerca e filtri avanzati<br>
                                 • Controlli velocità<br>
-                                • Temi personalizzabili<br>
-                                • Zoom card<br>
-                                • Persistenza dati
+                                • Temi chiaro/scuro<br>
+                                • Creazione highlights
                             </div>
                         </div>
                     </div>
