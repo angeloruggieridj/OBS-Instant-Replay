@@ -1,6 +1,6 @@
 """
 OBS Instant Replay - Server HTTP
-Versione: 1.0-beta2
+Versione: 1.0-beta3
 Repository: https://github.com/angeloruggieridj/OBS-Instant-Replay
 
 Funzionalità:
@@ -29,7 +29,7 @@ import subprocess
 import tempfile
 
 # Versione corrente
-VERSION = "1.0-beta2"
+VERSION = "1.0-beta3"
 GITHUB_REPO = "angeloruggieridj/OBS-Instant-Replay"
 GITHUB_RELEASES_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 GITHUB_ALL_RELEASES_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases"
@@ -58,7 +58,7 @@ card_zoom = 200  # Dimensione card (120-320px)
 current_playing_video = None  # Path del video attualmente in riproduzione
 current_ready_video = None  # Path del video caricato ma non avviato (READY)
 auto_play_on_load = True  # Se True avvia automaticamente, se False carica solo (READY)
-update_channel = "beta"  # Canale aggiornamenti: "stable" o "beta"
+update_channel = "stable"  # Canale aggiornamenti: "stable" o "beta"
 last_scan_time = None  # Timestamp dell'ultimo scan
 video_durations_cache = {}  # Cache delle durate video {path: seconds}
 highlights_files = []  # Lista dei file highlights creati
@@ -97,7 +97,7 @@ def load_persistent_data():
         current_speed = data.get('current_speed', 1.0)
         highlights_files = data.get('highlights_files', [])
         auto_play_on_load = data.get('auto_play_on_load', True)
-        update_channel = data.get('update_channel', 'beta')
+        update_channel = data.get('update_channel', 'stable')
 
         # Impostazioni OBS
         replay_folder = data.get('replay_folder', '')
@@ -2950,9 +2950,60 @@ body {
 .empty-state-subtext {
     font-size: 14px;
 }
+
+/* Loading Overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bg-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.loading-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.loading-content {
+    text-align: center;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid var(--border-color);
+    border-top-color: var(--accent-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-text {
+    font-size: 16px;
+    color: var(--text-secondary);
+}
 </style>
 </head>
 <body data-theme="default">
+
+<!-- ==================== LOADING OVERLAY ==================== -->
+<div class="loading-overlay" id="loading-overlay">
+    <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Caricamento configurazione...</div>
+    </div>
+</div>
 
 <!-- ==================== HEADER ==================== -->
 <div class="header">
@@ -3455,6 +3506,12 @@ async function init() {
     await loadReplays();
     await loadVersion();
     startAutoRefresh();
+
+    // Nascondi loading overlay
+    const loadingOverlay = document.getElementById('loading-overlay');
+    if (loadingOverlay) {
+        loadingOverlay.classList.add('hidden');
+    }
 }
 
 function startAutoRefresh() {
