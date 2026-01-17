@@ -909,6 +909,36 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                 else:
                     self.send_json({'success': False})
 
+            elif path == '/api/category/rename':
+                old_name = data.get('old_name', '').strip()
+                new_name = data.get('new_name', '').strip()
+                if old_name in categories and new_name and new_name not in categories:
+                    # Salva il colore
+                    color = categories[old_name]
+                    # Elimina la vecchia categoria
+                    del categories[old_name]
+                    # Crea la nuova con lo stesso colore
+                    categories[new_name] = color
+                    # Aggiorna tutti i video assegnati alla vecchia categoria
+                    for path_key in list(video_categories.keys()):
+                        if video_categories[path_key] == old_name:
+                            video_categories[path_key] = new_name
+                    save_persistent_data()
+                    self.send_json({'success': True})
+                else:
+                    error = 'Categoria non trovata' if old_name not in categories else 'Nome già esistente o non valido'
+                    self.send_json({'success': False, 'error': error})
+
+            elif path == '/api/category/update-color':
+                name = data.get('name', '').strip()
+                color = data.get('color', '').strip()
+                if name in categories and color:
+                    categories[name] = color
+                    save_persistent_data()
+                    self.send_json({'success': True})
+                else:
+                    self.send_json({'success': False, 'error': 'Categoria non trovata'})
+
             elif path == '/api/category/assign':
                 index = data.get('index', -1)
                 category = data.get('category')
@@ -2322,6 +2352,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    min-height: 60px;
 }
 
 .category-item {
@@ -2331,41 +2362,172 @@ body {
     padding: 12px;
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: 8px;
+    transition: all 0.15s ease;
+    position: relative;
+}
+
+.category-item:hover {
+    border-color: var(--accent-primary);
+    background: var(--bg-hover);
 }
 
 .category-color {
-    width: 30px;
-    height: 30px;
-    border-radius: 4px;
-    border: 2px solid var(--border-color);
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+    flex-shrink: 0;
+}
+
+.category-color:hover {
+    transform: scale(1.1);
 }
 
 .category-name {
     flex: 1;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.category-name:hover {
+    color: var(--accent-primary);
+}
+
+.category-name-input {
+    flex: 1;
+    padding: 6px 10px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--accent-primary);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
 }
 
 .category-count {
     font-size: 12px;
     color: var(--text-secondary);
+    background: var(--bg-secondary);
+    padding: 4px 8px;
+    border-radius: 10px;
+}
+
+.category-actions {
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.category-item:hover .category-actions {
+    opacity: 1;
+}
+
+.category-btn {
+    padding: 6px 10px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.15s ease;
+}
+
+.category-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--border-light);
+}
+
+.category-btn.delete:hover {
+    background: var(--accent-danger);
+    color: white;
+    border-color: var(--accent-danger);
+}
+
+.category-btn.save {
+    background: var(--accent-success);
+    color: white;
+    border-color: var(--accent-success);
 }
 
 .category-delete-btn {
-    padding: 6px 12px;
-    background: var(--accent-danger);
+    padding: 4px 8px;
+    background: transparent;
     border: none;
     border-radius: 4px;
-    color: white;
+    color: var(--text-secondary);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 14px;
+    transition: all 0.15s ease;
+    opacity: 0.5;
+}
+
+.category-item:hover .category-delete-btn {
+    opacity: 1;
+}
+
+.category-delete-btn:hover {
+    background: var(--accent-danger);
+    color: white;
+}
+
+/* Color presets */
+.color-presets {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.color-preset {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: all 0.15s ease;
+}
+
+.color-preset:hover {
+    transform: scale(1.15);
+}
+
+.color-preset.selected {
+    border-color: #fff;
+    box-shadow: 0 0 0 2px var(--accent-primary);
+}
+
+/* Inline color picker */
+.inline-color-picker {
+    position: absolute;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    gap: 6px;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    left: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.inline-color-picker .color-preset {
+    width: 24px;
+    height: 24px;
+    border-width: 2px;
 }
 
 .add-category-form {
     display: flex;
     gap: 10px;
-    margin-top: 15px;
 }
 
 .add-category-input {
@@ -2866,15 +3028,28 @@ body {
             <!-- Categories Panel -->
             <div class="settings-panel" id="panel-categories">
                 <div class="settings-section">
-                    <div class="settings-section-title">Categorie Personalizzate</div>
+                    <div class="settings-section-title">Nuova Categoria</div>
+                    <div class="add-category-form" style="margin-bottom: 12px;">
+                        <input type="text" class="add-category-input" id="new-category-name" placeholder="Nome categoria...">
+                        <button class="add-category-btn" onclick="addCategory()">Aggiungi</button>
+                    </div>
+                    <div class="color-presets" id="color-presets">
+                        <div class="color-preset selected" data-color="#e74c3c" style="background:#e74c3c;" onclick="selectPresetColor(this)"></div>
+                        <div class="color-preset" data-color="#e67e22" style="background:#e67e22;" onclick="selectPresetColor(this)"></div>
+                        <div class="color-preset" data-color="#f1c40f" style="background:#f1c40f;" onclick="selectPresetColor(this)"></div>
+                        <div class="color-preset" data-color="#2ecc71" style="background:#2ecc71;" onclick="selectPresetColor(this)"></div>
+                        <div class="color-preset" data-color="#1abc9c" style="background:#1abc9c;" onclick="selectPresetColor(this)"></div>
+                        <div class="color-preset" data-color="#3498db" style="background:#3498db;" onclick="selectPresetColor(this)"></div>
+                        <div class="color-preset" data-color="#9b59b6" style="background:#9b59b6;" onclick="selectPresetColor(this)"></div>
+                        <div class="color-preset" data-color="#e91e63" style="background:#e91e63;" onclick="selectPresetColor(this)"></div>
+                        <div class="color-preset" data-color="#607d8b" style="background:#607d8b;" onclick="selectPresetColor(this)"></div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="settings-section-title">Le Tue Categorie</div>
                     <div class="category-list" id="category-list">
                         <!-- Categories will be inserted here -->
-                    </div>
-
-                    <div class="add-category-form">
-                        <input type="text" class="add-category-input" id="new-category-name" placeholder="Nome categoria...">
-                        <input type="color" class="color-picker" id="new-category-color" value="#888888">
-                        <button class="add-category-btn" onclick="addCategory()">Aggiungi</button>
                     </div>
                 </div>
             </div>
@@ -3225,6 +3400,13 @@ async function saveOBSSettings() {
 
     if (result && result.success) {
         showNotification('Impostazioni salvate', 'success');
+
+        // Aggiorna anche il display nel tab Generale
+        const folderPath = settings.replay_folder;
+        if (folderPath) {
+            document.getElementById('current-folder').textContent = folderPath;
+        }
+
         await loadReplays();
     } else {
         showNotification('Errore nel salvataggio', 'error');
@@ -3446,6 +3628,12 @@ function filterVideos() {
 // ==================== VIDEO CARD FUNCTIONS ====================
 function renderVideoGrid(replays = allReplays) {
     const grid = document.getElementById('video-grid');
+
+    // Rimuovi sempre l'empty-state se esiste
+    const emptyState = grid.querySelector('.empty-state');
+    if (emptyState) {
+        emptyState.remove();
+    }
 
     if (replays.length === 0) {
         grid.innerHTML = `
@@ -4233,14 +4421,23 @@ function switchSettingsTab(tabName) {
         panel.classList.remove('active');
     });
 
-    // Hide all tab buttons
+    // Remove active from all tab buttons
     document.querySelectorAll('.settings-tab').forEach(tab => {
         tab.classList.remove('active');
     });
 
-    // Show selected panel and tab
-    document.getElementById(`panel-${tabName}`).classList.add('active');
-    event.target.classList.add('active');
+    // Show selected panel
+    const panel = document.getElementById(`panel-${tabName}`);
+    if (panel) {
+        panel.classList.add('active');
+    }
+
+    // Find and activate the correct tab button
+    document.querySelectorAll('.settings-tab').forEach(tab => {
+        if (tab.getAttribute('onclick')?.includes(`'${tabName}'`)) {
+            tab.classList.add('active');
+        }
+    });
 }
 
 async function loadCategories() {
@@ -4268,10 +4465,10 @@ function renderCategories() {
 
     list.innerHTML = Object.entries(categories).map(([name, data]) => `
         <div class="category-item">
-            <div class="category-color" style="background-color: ${data.color};"></div>
-            <div class="category-name">${name}</div>
+            <div class="category-color" style="background-color: ${data.color};" onclick="showColorPickerForCategory('${name}', '${data.color}', this)" title="Cambia colore"></div>
+            <div class="category-name" onclick="renameCategory('${name}')" title="Rinomina">${name}</div>
             <div class="category-count">${data.count} video</div>
-            <button class="category-delete-btn" onclick="deleteCategory('${name}')">Elimina</button>
+            <button class="category-delete-btn" onclick="deleteCategory('${name}')">✕</button>
         </div>
     `).join('');
 }
@@ -4336,12 +4533,22 @@ document.addEventListener('click', (e) => {
     }
 });
 
+// Funzione per selezionare un colore preset
+function selectPresetColor(el) {
+    document.querySelectorAll('.color-preset').forEach(p => p.classList.remove('selected'));
+    el.classList.add('selected');
+}
+
+// Funzione per ottenere il colore preset selezionato
+function getSelectedPresetColor() {
+    const selected = document.querySelector('.color-preset.selected');
+    return selected ? selected.dataset.color : '#e74c3c';
+}
+
 async function addCategory() {
     const nameInput = document.getElementById('new-category-name');
-    const colorInput = document.getElementById('new-category-color');
-
     const name = nameInput.value.trim();
-    const color = colorInput.value;
+    const color = getSelectedPresetColor();
 
     if (!name) {
         showNotification('Inserisci un nome per la categoria', 'warning');
@@ -4352,12 +4559,85 @@ async function addCategory() {
 
     if (result && result.success) {
         nameInput.value = '';
-        colorInput.value = '#888888';
         await loadCategories();
         showNotification('Categoria creata', 'success');
     } else {
         showNotification('Errore: nome duplicato o non valido', 'error');
     }
+}
+
+// Funzione per rinominare una categoria
+async function renameCategory(oldName) {
+    const newName = prompt('Nuovo nome per la categoria:', oldName);
+    if (newName && newName.trim() && newName.trim() !== oldName) {
+        const result = await apiCall('/api/category/rename', 'POST', {
+            old_name: oldName,
+            new_name: newName.trim()
+        });
+        if (result && result.success) {
+            await loadCategories();
+            await loadReplays();
+            showNotification('Categoria rinominata', 'success');
+        } else {
+            showNotification(result?.error || 'Errore nella rinomina', 'error');
+        }
+    }
+}
+
+// Funzione per cambiare colore di una categoria
+async function changeCategoryColor(name, newColor) {
+    const result = await apiCall('/api/category/update-color', 'POST', {
+        name: name,
+        color: newColor
+    });
+    if (result && result.success) {
+        await loadCategories();
+        await loadReplays();
+        showNotification('Colore aggiornato', 'success');
+    } else {
+        showNotification('Errore aggiornamento colore', 'error');
+    }
+}
+
+// Mostra il picker colori inline per una categoria esistente
+function showColorPickerForCategory(name, currentColor, btn) {
+    // Rimuovi eventuali picker aperti
+    document.querySelectorAll('.inline-color-picker').forEach(p => p.remove());
+
+    const picker = document.createElement('div');
+    picker.className = 'inline-color-picker';
+    picker.innerHTML = `
+        <div class="color-preset ${currentColor === '#e74c3c' ? 'selected' : ''}" data-color="#e74c3c" style="background:#e74c3c;"></div>
+        <div class="color-preset ${currentColor === '#e67e22' ? 'selected' : ''}" data-color="#e67e22" style="background:#e67e22;"></div>
+        <div class="color-preset ${currentColor === '#f1c40f' ? 'selected' : ''}" data-color="#f1c40f" style="background:#f1c40f;"></div>
+        <div class="color-preset ${currentColor === '#2ecc71' ? 'selected' : ''}" data-color="#2ecc71" style="background:#2ecc71;"></div>
+        <div class="color-preset ${currentColor === '#1abc9c' ? 'selected' : ''}" data-color="#1abc9c" style="background:#1abc9c;"></div>
+        <div class="color-preset ${currentColor === '#3498db' ? 'selected' : ''}" data-color="#3498db" style="background:#3498db;"></div>
+        <div class="color-preset ${currentColor === '#9b59b6' ? 'selected' : ''}" data-color="#9b59b6" style="background:#9b59b6;"></div>
+        <div class="color-preset ${currentColor === '#e91e63' ? 'selected' : ''}" data-color="#e91e63" style="background:#e91e63;"></div>
+        <div class="color-preset ${currentColor === '#607d8b' ? 'selected' : ''}" data-color="#607d8b" style="background:#607d8b;"></div>
+    `;
+
+    picker.querySelectorAll('.color-preset').forEach(p => {
+        p.onclick = async (e) => {
+            e.stopPropagation();
+            const color = p.dataset.color;
+            picker.remove();
+            await changeCategoryColor(name, color);
+        };
+    });
+
+    btn.parentElement.appendChild(picker);
+
+    // Chiudi picker cliccando fuori
+    setTimeout(() => {
+        document.addEventListener('click', function closePicker(e) {
+            if (!picker.contains(e.target)) {
+                picker.remove();
+                document.removeEventListener('click', closePicker);
+            }
+        });
+    }, 10);
 }
 
 async function deleteCategory(name) {
