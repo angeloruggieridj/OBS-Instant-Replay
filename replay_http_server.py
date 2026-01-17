@@ -1335,31 +1335,71 @@ body {
 
 .header-actions {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
+    align-items: center;
 }
 
 .header-btn {
-    padding: 8px 16px;
+    padding: 8px 14px;
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: 8px;
     color: var(--text-primary);
     cursor: pointer;
-    font-size: 14px;
-    display: flex;
+    font-size: 13px;
+    font-weight: 500;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
     transition: all 0.2s ease;
+    white-space: nowrap;
 }
 
 .header-btn:hover {
-    background: var(--bg-hover);
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: #fff;
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
 }
 
 .header-btn:active {
     transform: translateY(0);
+    box-shadow: none;
+}
+
+.header-btn.primary {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: #fff;
+}
+
+.header-btn.primary:hover {
+    background: var(--accent-primary-dark, #2980b9);
+    border-color: var(--accent-primary-dark, #2980b9);
+}
+
+.header-btn .btn-icon {
+    font-size: 15px;
+    line-height: 1;
+}
+
+.header-btn .btn-text {
+    font-size: 13px;
+}
+
+/* Su schermi piccoli nasconde il testo e mostra solo icone */
+@media (max-width: 900px) {
+    .header-btn .btn-text {
+        display: none;
+    }
+    .header-btn {
+        padding: 10px 12px;
+    }
+    .header-btn .btn-icon {
+        font-size: 18px;
+    }
 }
 
 .header-stats {
@@ -1745,6 +1785,11 @@ body {
     backdrop-filter: blur(12px);
     animation: contextMenuIn 0.15s ease-out;
     overflow: hidden;
+    display: none;
+}
+
+.context-menu.visible {
+    display: block;
 }
 
 @keyframes contextMenuIn {
@@ -1845,6 +1890,18 @@ body {
     margin-left: auto;
     color: var(--accent-primary);
     font-weight: bold;
+}
+
+.color-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    padding: 8px 12px;
+}
+
+.color-picker-grid .color-preset {
+    width: 28px;
+    height: 28px;
 }
 
 .video-info {
@@ -2801,29 +2858,29 @@ body {
         </div>
 
         <div class="header-actions">
-            <button class="header-btn" onclick="toggleSearch()">
-                <span>🔍</span>
-                <span>Cerca</span>
+            <button class="header-btn" onclick="toggleSearch()" title="Cerca">
+                <span class="btn-icon">🔍</span>
+                <span class="btn-text">Cerca</span>
             </button>
-            <button class="header-btn" onclick="openPlaylistModal()">
-                <span>📋</span>
-                <span>Playlist</span>
+            <button class="header-btn" onclick="openPlaylistModal()" title="Playlist">
+                <span class="btn-icon">📋</span>
+                <span class="btn-text">Playlist</span>
             </button>
-            <button class="header-btn" onclick="openHighlightsModal()">
-                <span>✨</span>
-                <span>Highlights</span>
+            <button class="header-btn" onclick="openHighlightsModal()" title="Highlights">
+                <span class="btn-icon">✨</span>
+                <span class="btn-text">Highlights</span>
             </button>
-            <button class="header-btn" onclick="openSettingsModal()">
-                <span>⚙️</span>
-                <span>Impostazioni</span>
+            <button class="header-btn" onclick="openSettingsModal()" title="Impostazioni">
+                <span class="btn-icon">⚙️</span>
+                <span class="btn-text">Impostazioni</span>
             </button>
-            <button class="header-btn" onclick="openHiddenModal()">
-                <span>👁️</span>
-                <span>Nascosti</span>
+            <button class="header-btn" onclick="openHiddenModal()" title="Video nascosti">
+                <span class="btn-icon">👁️</span>
+                <span class="btn-text">Nascosti</span>
             </button>
-            <button class="header-btn" onclick="refreshReplays()">
-                <span>🔄</span>
-                <span>Aggiorna</span>
+            <button class="header-btn" onclick="refreshReplays()" title="Aggiorna lista">
+                <span class="btn-icon">🔄</span>
+                <span class="btn-text">Aggiorna</span>
             </button>
         </div>
 
@@ -3185,21 +3242,6 @@ body {
                             <a href="https://github.com/angeloruggieridj/OBS-Instant-Replay" target="_blank" style="color: var(--accent-primary);">github.com/angeloruggieridj/OBS-Instant-Replay</a>
                         </div>
                     </div>
-                    <div class="settings-item">
-                        <div>
-                            <div class="settings-item-label">Funzionalità</div>
-                            <div class="settings-item-description">
-                                • Sistema preferiti<br>
-                                • Playlist e code<br>
-                                • Categorie personalizzate<br>
-                                • Modalità READY/LIVE<br>
-                                • Ricerca e filtri avanzati<br>
-                                • Controlli velocità<br>
-                                • Temi chiaro/scuro<br>
-                                • Creazione highlights
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -3235,11 +3277,6 @@ body {
             </div>
         </div>
     </div>
-</div>
-
-<!-- ==================== CONTEXT MENU ==================== -->
-<div class="context-menu" id="context-menu">
-    <!-- Context menu items will be added dynamically -->
 </div>
 
 <!-- ==================== BOTTOM BAR ==================== -->
@@ -3887,7 +3924,7 @@ function showContextMenu(event, index) {
     // Create new menu element with modern styling
     const menu = document.createElement('div');
     menu.id = 'context-menu';
-    menu.className = 'context-menu';
+    menu.className = 'context-menu visible';
 
     const isFav = replay.favorite;
     const hasCategory = replay.category && categories[replay.category];
@@ -4464,13 +4501,85 @@ function renderCategories() {
     }
 
     list.innerHTML = Object.entries(categories).map(([name, data]) => `
-        <div class="category-item">
-            <div class="category-color" style="background-color: ${data.color};" onclick="showColorPickerForCategory('${name}', '${data.color}', this)" title="Cambia colore"></div>
-            <div class="category-name" onclick="renameCategory('${name}')" title="Rinomina">${name}</div>
+        <div class="category-item" oncontextmenu="showCategoryContextMenu(event, '${name.replace(/'/g, "\\'")}', '${data.color}')">
+            <div class="category-color" style="background-color: ${data.color};" title="Tasto destro per cambiare colore"></div>
+            <div class="category-name">${name}</div>
             <div class="category-count">${data.count} video</div>
-            <button class="category-delete-btn" onclick="deleteCategory('${name}')">✕</button>
+            <button class="category-delete-btn" onclick="deleteCategory('${name.replace(/'/g, "\\'")}')">✕</button>
         </div>
     `).join('');
+}
+
+// Context menu per categorie (tasto destro)
+function showCategoryContextMenu(event, categoryName, currentColor) {
+    event.preventDefault();
+
+    // Rimuovi menu esistente
+    const existing = document.getElementById('category-context-menu');
+    if (existing) existing.remove();
+
+    const menu = document.createElement('div');
+    menu.id = 'category-context-menu';
+    menu.className = 'context-menu visible';
+
+    let html = `
+        <div class="context-menu-header">${categoryName}</div>
+        <div class="context-menu-item" onclick="renameCategory('${categoryName.replace(/'/g, "\\'")}'); hideCategoryContextMenu();">
+            <span class="menu-icon">✏️</span>
+            <span>Rinomina</span>
+        </div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-header">Cambia colore</div>
+        <div class="color-picker-grid">
+    `;
+
+    const colors = ['#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#1abc9c', '#3498db', '#9b59b6', '#e91e63', '#607d8b'];
+    colors.forEach(color => {
+        const selected = color === currentColor ? 'selected' : '';
+        html += `<div class="color-preset ${selected}" style="background:${color};" onclick="changeCategoryColor('${categoryName.replace(/'/g, "\\'")}', '${color}'); hideCategoryContextMenu();"></div>`;
+    });
+
+    html += `
+        </div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item danger" onclick="deleteCategory('${categoryName.replace(/'/g, "\\'")}'); hideCategoryContextMenu();">
+            <span class="menu-icon">🗑️</span>
+            <span>Elimina</span>
+        </div>
+    `;
+
+    menu.innerHTML = html;
+    document.body.appendChild(menu);
+
+    // Posizionamento
+    const rect = menu.getBoundingClientRect();
+    let posX = event.clientX;
+    let posY = event.clientY;
+
+    if (posX + rect.width + 8 > window.innerWidth) {
+        posX = Math.max(8, posX - rect.width);
+    }
+    if (posY + rect.height + 8 > window.innerHeight) {
+        posY = Math.max(8, window.innerHeight - rect.height - 8);
+    }
+
+    menu.style.left = posX + 'px';
+    menu.style.top = posY + 'px';
+
+    // Chiudi al click fuori
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu(e) {
+            if (!menu.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        });
+    }, 10);
+}
+
+function hideCategoryContextMenu() {
+    const menu = document.getElementById('category-context-menu');
+    if (menu) menu.remove();
 }
 
 function updateCategoryFilter() {
