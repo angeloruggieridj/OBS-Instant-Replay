@@ -75,6 +75,8 @@ def load_persistent_data():
     """Carica dati persistenti da JSON"""
     global favorites, playlist_queue, categories, video_categories, hidden_videos
     global current_theme, card_zoom, current_speed, highlights_files, auto_play_on_load
+    global replay_folder, media_source_name, target_scene_name, auto_switch_scene
+    global filter_mask, refresh_interval_seconds
 
     if not DATA_FILE or not os.path.exists(DATA_FILE):
         return
@@ -93,6 +95,14 @@ def load_persistent_data():
         current_speed = data.get('current_speed', 1.0)
         highlights_files = data.get('highlights_files', [])
         auto_play_on_load = data.get('auto_play_on_load', True)
+
+        # Impostazioni OBS
+        replay_folder = data.get('replay_folder', '')
+        media_source_name = data.get('media_source_name', 'Replay Source')
+        target_scene_name = data.get('target_scene_name', '')
+        auto_switch_scene = data.get('auto_switch_scene', False)
+        filter_mask = data.get('filter_mask', '')
+        refresh_interval_seconds = data.get('refresh_interval', 3)
 
         print(f"[DATA] Caricati: {len(favorites)} preferiti, {len(playlist_queue)} in coda, {len(categories)} categorie")
     except Exception as e:
@@ -114,7 +124,14 @@ def save_persistent_data():
             'card_zoom': card_zoom,
             'current_speed': current_speed,
             'highlights_files': highlights_files,
-            'auto_play_on_load': auto_play_on_load
+            'auto_play_on_load': auto_play_on_load,
+            # Impostazioni OBS
+            'replay_folder': replay_folder,
+            'media_source_name': media_source_name,
+            'target_scene_name': target_scene_name,
+            'auto_switch_scene': auto_switch_scene,
+            'filter_mask': filter_mask,
+            'refresh_interval': refresh_interval_seconds
         }
 
         with open(DATA_FILE, 'w', encoding='utf-8') as f:

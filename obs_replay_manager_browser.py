@@ -24,49 +24,49 @@ except ImportError as e:
     print(f"✗ Impossibile importare replay_http_server: {e}")
 
 # Variabili globali
-replay_folder = ""
-media_source_name = ""
-target_scene_name = ""
-auto_switch_scene = False
 server_port = 8765
-dock_created = False
 
 
 def load_replay_to_source(file_path, auto_play=True):
     """Carica un replay nella fonte multimediale"""
-    global media_source_name, target_scene_name, auto_switch_scene
-    
+    if not SERVER_AVAILABLE:
+        return False
+
+    media_source_name = server.media_source_name
+    target_scene_name = server.target_scene_name
+    auto_switch_scene = server.auto_switch_scene
+
     if not media_source_name or not target_scene_name:
         print("⚠ Nome fonte o scena non configurati")
         return False
-    
+
     scenes = obs.obs_frontend_get_scenes()
     target_scene = None
-    
+
     for scene_source in scenes:
         scene_name = obs.obs_source_get_name(scene_source)
         if scene_name == target_scene_name:
             target_scene = obs.obs_scene_from_source(scene_source)
             break
-    
+
     obs.source_list_release(scenes)
-    
+
     if not target_scene:
         print(f"⚠ Scena '{target_scene_name}' non trovata")
         return False
-    
+
     scene_item = obs.obs_scene_find_source(target_scene, media_source_name)
-    
+
     if scene_item:
         source = obs.obs_sceneitem_get_source(scene_item)
     else:
         settings = obs.obs_data_create()
         source = obs.obs_source_create("ffmpeg_source", media_source_name, settings, None)
         obs.obs_data_release(settings)
-        
+
         if source:
             obs.obs_scene_add(target_scene, source)
-    
+
     if source:
         settings = obs.obs_data_create()
         obs.obs_data_set_string(settings, "local_file", file_path)
@@ -93,7 +93,7 @@ def load_replay_to_source(file_path, auto_play=True):
             obs.obs_source_media_stop(source)
             # Imposta il tempo a 0 per essere pronti all'avvio
             obs.obs_source_media_set_time(source, 0)
-        
+
         if auto_switch_scene:
             scenes = obs.obs_frontend_get_scenes()
             for scene_source in scenes:
@@ -101,24 +101,27 @@ def load_replay_to_source(file_path, auto_play=True):
                     obs.obs_frontend_set_current_scene(scene_source)
                     break
             obs.source_list_release(scenes)
-        
+
         print(f"✓ Replay caricato: {os.path.basename(file_path)}")
         return True
-    
+
     return False
 
 
 def open_replay_folder():
     """Apri cartella replay"""
-    global replay_folder
-    
+    if not SERVER_AVAILABLE:
+        return
+
+    replay_folder = server.replay_folder
+
     if not replay_folder or not os.path.exists(replay_folder):
         return
-    
+
     try:
         import subprocess
         import platform
-        
+
         if platform.system() == 'Windows':
             os.startfile(replay_folder)
         elif platform.system() == 'Darwin':
@@ -142,198 +145,56 @@ def check_and_handle_actions():
 # ===== FUNZIONI OBS =====
 
 def script_description():
-    desc = """<center><h2>🎬 OBS Replay Manager - Browser Dock</h2></center>
-    <p><b>Plugin con pannello Browser integrato</b></p>
-    <hr>
-    """
-
     if SERVER_AVAILABLE:
-        desc += f"""<p style='color: green;'><b>✓ Server HTTP disponibile ({SERVER_VERSION})</b></p>
-        <p><b>Il pannello sarà creato automaticamente all'avvio.</b></p>
-        <p>Dopo aver configurato qui sotto:</p>
-        <ol>
-            <li>Clicca sul pulsante "Crea/Apri Pannello Browser" qui sotto</li>
-            <li>Oppure vai su: <b>Pannelli → Custom Browser Docks → Replay Manager</b></li>
-            <li>Oppure vai su: <b>View → Docks → Replay Manager</b></li>
-        </ol>
-        <p style='color: #999; font-size: 12px;'>
-        URL Pannello: http://localhost:{server_port}
+        return f"""<center><h2>OBS Instant Replay</h2></center>
+        <p style='color: green;'><b>✓ Server attivo</b> (v{SERVER_VERSION})</p>
+        <hr>
+        <p><b>URL Pannello:</b></p>
+        <p style='background: #333; padding: 8px; border-radius: 4px; font-family: monospace;'>
+        http://localhost:{server_port}
         </p>
-        <p style='background: #2a2a2a; padding: 10px; border-radius: 5px; margin-top: 10px;'>
-        <b>💡 Nota:</b> Se il pannello non appare, prova a:
-        <br>1. Riavviare OBS
-        <br>2. Cliccare nuovamente "Crea/Apri Pannello Browser"
-        <br>3. Controllare che nessun altro programma usi la porta {server_port}
+        <p style='font-size: 11px; color: #888; margin-top: 8px;'>
+        Vai su <b>Pannelli → Custom Browser Docks</b> e aggiungi questo URL.
         </p>
         """
     else:
-        desc += """<p style='color: red;'><b>✗ Server HTTP non disponibile</b></p>
-        <p>Assicurati che il file <code>replay_http_server.py</code> sia nella stessa cartella di questo script.</p>
+        return """<center><h2>OBS Instant Replay</h2></center>
+        <p style='color: red;'><b>✗ Server non disponibile</b></p>
+        <p>Assicurati che <code>replay_http_server.py</code> sia nella stessa cartella.</p>
         """
-    
-    desc += """
-    <hr>
-    <p style='font-size: 11px; color: #666;'>
-    <b>Vantaggi Browser Dock:</b><br>
-    ✓ Nessuna dipendenza PyQt5<br>
-    ✓ Interfaccia moderna e responsive<br>
-    ✓ Nessun rischio di crash<br>
-    ✓ Facile da personalizzare
-    </p>
-    """
-    
-    return desc
 
 
 def script_properties():
     props = obs.obs_properties_create()
-    
-    # Pulsante per creare/aprire il dock
-    if SERVER_AVAILABLE:
-        obs.obs_properties_add_button(
-            props,
-            "create_dock",
-            "🌐 Crea/Apri Pannello Browser",
-            create_dock_callback
-        )
-        
-        obs.obs_properties_add_text(
-            props, "dock_info",
-            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-            obs.OBS_TEXT_INFO
-        )
-    
-    obs.obs_properties_add_text(
-        props, "header",
-        "═══════════ CONFIGURAZIONE ═══════════",
-        obs.OBS_TEXT_INFO
-    )
-    
-    obs.obs_properties_add_path(
-        props, "replay_folder",
-        "📁 Cartella Replay",
-        obs.OBS_PATH_DIRECTORY,
-        None, None
-    )
-    
-    obs.obs_properties_add_text(
-        props, "media_source_name",
-        "🎥 Nome Fonte Multimediale",
-        obs.OBS_TEXT_DEFAULT
-    )
-    
-    scene_list = obs.obs_properties_add_list(
-        props, "target_scene",
-        "🎬 Scena Target",
-        obs.OBS_COMBO_TYPE_LIST,
-        obs.OBS_COMBO_FORMAT_STRING
-    )
-    
-    scenes = obs.obs_frontend_get_scenes()
-    for scene_source in scenes:
-        scene_name = obs.obs_source_get_name(scene_source)
-        obs.obs_property_list_add_string(scene_list, scene_name, scene_name)
-    obs.source_list_release(scenes)
-    
-    obs.obs_properties_add_bool(
-        props, "auto_switch_scene",
-        "↪️ Passa automaticamente alla scena"
-    )
-    
-    obs.obs_properties_add_text(
-        props, "filter_mask",
-        "🔍 Filtro Nome File (es: Replay )",
-        obs.OBS_TEXT_DEFAULT
-    )
-    
-    obs.obs_properties_add_int_slider(
-        props, "refresh_interval_seconds",
-        "⏱️ Intervallo Auto-Refresh (secondi)",
-        1, 60, 1
-    )
-    
+
     obs.obs_properties_add_int(
         props, "server_port",
-        "🌐 Porta Server (richiede riavvio)",
-        8765, 65535, 1
+        "Porta Server",
+        1024, 65535, 1
     )
-    
+
+    obs.obs_properties_add_text(
+        props, "info_note",
+        "Le altre impostazioni sono disponibili nel pannello web.",
+        obs.OBS_TEXT_INFO
+    )
+
     return props
 
 
 def script_defaults(settings):
-    obs.obs_data_set_default_string(settings, "media_source_name", "Replay Source")
-    obs.obs_data_set_default_bool(settings, "auto_switch_scene", False)
     obs.obs_data_set_default_int(settings, "server_port", 8765)
-    obs.obs_data_set_default_string(settings, "filter_mask", "")
-    obs.obs_data_set_default_int(settings, "refresh_interval_seconds", 3)
 
 
 def script_update(settings):
-    global replay_folder, media_source_name, target_scene_name
-    global auto_switch_scene, server_port
-    
-    replay_folder = obs.obs_data_get_string(settings, "replay_folder")
-    media_source_name = obs.obs_data_get_string(settings, "media_source_name")
-    target_scene_name = obs.obs_data_get_string(settings, "target_scene")
-    auto_switch_scene = obs.obs_data_get_bool(settings, "auto_switch_scene")
+    global server_port
+
     server_port = obs.obs_data_get_int(settings, "server_port")
-    
-    filter_mask = obs.obs_data_get_string(settings, "filter_mask")
-    refresh_interval = obs.obs_data_get_int(settings, "refresh_interval_seconds")
-    
+
     if SERVER_AVAILABLE:
-        server.update_settings(replay_folder, media_source_name, target_scene_name, auto_switch_scene)
-        server.filter_mask = filter_mask
+        # Legge le impostazioni dal file di dati persistente
+        server.load_persistent_data()
         server.scan_replay_folder()
-        # Comunica refresh interval al frontend
-        server.refresh_interval_seconds = refresh_interval
-
-
-def create_dock_callback(props, prop):
-    """Callback per creare/aprire il dock browser"""
-    create_browser_dock()
-    return True
-
-
-def create_browser_dock():
-    """Crea il Custom Browser Dock"""
-    global dock_created
-    
-    if not SERVER_AVAILABLE:
-        print("✗ Server non disponibile")
-        return
-    
-    try:
-        # Crea dock usando obs_frontend_add_dock
-        # Questo è supportato da OBS 28.0+
-        dock_name = "Replay Manager"
-        dock_url = f"http://localhost:{server_port}"
-        
-        print(f"Tentativo creazione dock: {dock_name}")
-        print(f"URL: {dock_url}")
-        
-        # Nota: obs_frontend_add_dock non è sempre disponibile in obspython
-        # In alternativa, creiamo una Browser Source che l'utente può aggiungere manualmente
-        
-        print("\n" + "=" * 60)
-        print("📌 ISTRUZIONI PER AGGIUNGERE IL PANNELLO BROWSER:")
-        print("=" * 60)
-        print(f"1. In OBS, vai su: Pannelli → Custom Browser Docks")
-        print(f"2. Clicca 'Add' o '+'")
-        print(f"3. Nome Dock: Replay Manager")
-        print(f"4. URL: http://localhost:{server_port}")
-        print(f"5. Clicca 'Apply' o 'OK'")
-        print("=" * 60)
-        print(f"📍 Poi troverai il pannello in: Pannelli → Replay Manager")
-        print("=" * 60 + "\n")
-        
-        dock_created = True
-        
-    except Exception as e:
-        print(f"✗ Errore creazione dock: {e}")
-        import traceback
-        traceback.print_exc()
 
 
 def script_load(settings):
@@ -354,16 +215,7 @@ def script_load(settings):
     # Avvia server HTTP
     if server.start_server(server_port):
         print(f"✓ Server avviato su http://localhost:{server_port}")
-        print(f"\n📌 Per aggiungere il pannello browser:")
-        print(f"   1. Vai su: Pannelli → Custom Browser Docks")
-        print(f"   2. Clicca '+' o 'Add'")
-        print(f"   3. Nome: Replay Manager")
-        print(f"   4. URL: http://localhost:{server_port}")
-        print(f"   5. Clicca 'Apply'\n")
-        
-        # Prova a creare il dock automaticamente
-        # (questo potrebbe non funzionare su tutte le versioni di OBS)
-        create_browser_dock()
+        print(f"📌 URL pannello: http://localhost:{server_port}")
     else:
         print(f"✗ Impossibile avviare server sulla porta {server_port}")
         print(f"   Prova a cambiare la porta nelle impostazioni")
@@ -400,6 +252,9 @@ def check_actions_timer():
     """Timer che controlla se ci sono azioni da eseguire"""
     if not SERVER_AVAILABLE:
         return
+
+    media_source_name = server.media_source_name
+    target_scene_name = server.target_scene_name
 
     # Controlla lo stato della media source
     try:
