@@ -32,6 +32,7 @@ import tempfile
 VERSION = "1.0-beta2"
 GITHUB_REPO = "angeloruggieridj/OBS-Instant-Replay"
 GITHUB_RELEASES_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+GITHUB_ALL_RELEASES_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases"
 GITHUB_TAGS_URL = f"https://api.github.com/repos/{GITHUB_REPO}/tags"
 
 # Variabili globali
@@ -57,6 +58,7 @@ card_zoom = 200  # Dimensione card (120-320px)
 current_playing_video = None  # Path del video attualmente in riproduzione
 current_ready_video = None  # Path del video caricato ma non avviato (READY)
 auto_play_on_load = True  # Se True avvia automaticamente, se False carica solo (READY)
+update_channel = "beta"  # Canale aggiornamenti: "stable" o "beta"
 last_scan_time = None  # Timestamp dell'ultimo scan
 video_durations_cache = {}  # Cache delle durate video {path: seconds}
 highlights_files = []  # Lista dei file highlights creati
@@ -76,7 +78,7 @@ def load_persistent_data():
     global favorites, playlist_queue, categories, video_categories, hidden_videos
     global current_theme, card_zoom, current_speed, highlights_files, auto_play_on_load
     global replay_folder, media_source_name, target_scene_name, auto_switch_scene
-    global filter_mask, refresh_interval_seconds
+    global filter_mask, refresh_interval_seconds, update_channel
 
     if not DATA_FILE or not os.path.exists(DATA_FILE):
         return
@@ -95,6 +97,7 @@ def load_persistent_data():
         current_speed = data.get('current_speed', 1.0)
         highlights_files = data.get('highlights_files', [])
         auto_play_on_load = data.get('auto_play_on_load', True)
+        update_channel = data.get('update_channel', 'beta')
 
         # Impostazioni OBS
         replay_folder = data.get('replay_folder', '')
@@ -125,6 +128,7 @@ def save_persistent_data():
             'current_speed': current_speed,
             'highlights_files': highlights_files,
             'auto_play_on_load': auto_play_on_load,
+            'update_channel': update_channel,
             # Impostazioni OBS
             'replay_folder': replay_folder,
             'media_source_name': media_source_name,
@@ -142,26 +146,56 @@ def save_persistent_data():
 
 
 def check_for_updates():
-    """Verifica se sono disponibili aggiornamenti da GitHub"""
-    try:
-        # Prima prova con le release
-        try:
-            req = urllib.request.Request(
-                GITHUB_RELEASES_URL,
-                headers={'User-Agent': 'OBS-Instant-Replay'}
-            )
-            with urllib.request.urlopen(req, timeout=10) as response:
-                data = json.loads(response.read().decode('utf-8'))
+    """Verifica se sono disponibili aggiornamenti da GitHub
 
-            tag_name = data.get('tag_name', '')
+    Se update_channel == 'beta': considera pre-release + release stabili
+    Se update_channel == 'stable': solo release stabili (non pre-release)
+    """
+    try:
+        # Scarica tutte le release (include pre-release)
+        req = urllib.request.Request(
+            GITHUB_ALL_RELEASES_URL,
+            headers={'User-Agent': 'OBS-Instant-Replay'}
+        )
+
+        try:
+            with urllib.request.urlopen(req, timeout=10) as response:
+                all_releases = json.loads(response.read().decode('utf-8'))
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                all_releases = []
+            else:
+                raise
+
+        # Filtra in base al canale
+        target_release = None
+
+        if all_releases:
+            for release in all_releases:
+                is_prerelease = release.get('prerelease', False)
+                is_draft = release.get('draft', False)
+
+                # Salta le bozze
+                if is_draft:
+                    continue
+
+                # Canale Beta: accetta tutto (pre-release e stabili)
+                # Canale Stable: solo release non pre-release
+                if update_channel == 'beta' or not is_prerelease:
+                    target_release = release
+                    break  # Prendi la prima (più recente) che soddisfa i criteri
+
+        if target_release:
+            tag_name = target_release.get('tag_name', '')
             latest_version = tag_name.lstrip('v')
-            release_notes = data.get('body', '')
-            release_url = data.get('html_url', '')
-            published_at = data.get('published_at', '')
+            release_notes = target_release.get('body', '')
+            release_url = target_release.get('html_url', '')
+            published_at = target_release.get('published_at', '')
+            is_prerelease = target_release.get('prerelease', False)
 
             # Trova gli asset scaricabili dalla release
             assets = []
-            for asset in data.get('assets', []):
+            for asset in target_release.get('assets', []):
                 if asset.get('name', '').endswith('.py'):
                     assets.append({
                         'name': asset.get('name'),
@@ -192,65 +226,67 @@ def check_for_updates():
                 'current_version': VERSION,
                 'latest_version': latest_version,
                 'update_available': is_update_available,
+                'is_prerelease': is_prerelease,
                 'release_notes': release_notes,
                 'release_url': release_url,
                 'published_at': published_at,
-                'assets': assets
+                'assets': assets,
+                'channel': update_channel
             }
 
-        except urllib.error.HTTPError as e:
-            if e.code == 404:
-                # Nessuna release, prova con i tags
-                req = urllib.request.Request(
-                    GITHUB_TAGS_URL,
-                    headers={'User-Agent': 'OBS-Instant-Replay'}
-                )
-                with urllib.request.urlopen(req, timeout=10) as response:
-                    tags = json.loads(response.read().decode('utf-8'))
+        # Nessuna release trovata, prova con i tags
+        req = urllib.request.Request(
+            GITHUB_TAGS_URL,
+            headers={'User-Agent': 'OBS-Instant-Replay'}
+        )
+        with urllib.request.urlopen(req, timeout=10) as response:
+            tags = json.loads(response.read().decode('utf-8'))
 
-                if tags and len(tags) > 0:
-                    latest_tag_name = tags[0].get('name', '')
-                    latest_tag = latest_tag_name.lstrip('v')
-                    is_update_available = latest_tag != VERSION
+        if tags and len(tags) > 0:
+            latest_tag_name = tags[0].get('name', '')
+            latest_tag = latest_tag_name.lstrip('v')
+            is_update_available = latest_tag != VERSION
 
-                    # Genera URL per scaricare direttamente dal repository
-                    raw_base_url = f'https://raw.githubusercontent.com/{GITHUB_REPO}/{latest_tag_name}'
-                    assets = [
-                        {
-                            'name': 'replay_http_server.py',
-                            'download_url': f'{raw_base_url}/replay_http_server.py',
-                            'size': 0
-                        },
-                        {
-                            'name': 'obs_replay_manager_browser.py',
-                            'download_url': f'{raw_base_url}/obs_replay_manager_browser.py',
-                            'size': 0
-                        }
-                    ]
+            # Genera URL per scaricare direttamente dal repository
+            raw_base_url = f'https://raw.githubusercontent.com/{GITHUB_REPO}/{latest_tag_name}'
+            assets = [
+                {
+                    'name': 'replay_http_server.py',
+                    'download_url': f'{raw_base_url}/replay_http_server.py',
+                    'size': 0
+                },
+                {
+                    'name': 'obs_replay_manager_browser.py',
+                    'download_url': f'{raw_base_url}/obs_replay_manager_browser.py',
+                    'size': 0
+                }
+            ]
 
-                    return {
-                        'success': True,
-                        'current_version': VERSION,
-                        'latest_version': latest_tag,
-                        'update_available': is_update_available,
-                        'release_notes': 'Nessuna nota di rilascio disponibile (solo tag)',
-                        'release_url': f'https://github.com/{GITHUB_REPO}/releases/tag/{latest_tag_name}',
-                        'published_at': '',
-                        'assets': assets
-                    }
-                else:
-                    return {
-                        'success': True,
-                        'current_version': VERSION,
-                        'latest_version': VERSION,
-                        'update_available': False,
-                        'release_notes': '',
-                        'release_url': '',
-                        'published_at': '',
-                        'assets': []
-                    }
-            else:
-                raise
+            return {
+                'success': True,
+                'current_version': VERSION,
+                'latest_version': latest_tag,
+                'update_available': is_update_available,
+                'is_prerelease': False,
+                'release_notes': 'Nessuna nota di rilascio disponibile (solo tag)',
+                'release_url': f'https://github.com/{GITHUB_REPO}/releases/tag/{latest_tag_name}',
+                'published_at': '',
+                'assets': assets,
+                'channel': update_channel
+            }
+
+        return {
+            'success': True,
+            'current_version': VERSION,
+            'latest_version': VERSION,
+            'update_available': False,
+            'is_prerelease': False,
+            'release_notes': '',
+            'release_url': '',
+            'published_at': '',
+            'assets': [],
+            'channel': update_channel
+        }
 
     except urllib.error.URLError as e:
         return {
@@ -665,7 +701,8 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                 'current_speed': current_speed,
                 'current_theme': current_theme,
                 'card_zoom': card_zoom,
-                'auto_play_on_load': auto_play_on_load
+                'auto_play_on_load': auto_play_on_load,
+                'update_channel': update_channel
             })
 
         elif path == '/api/scan':
@@ -1024,6 +1061,16 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                 current_theme = theme
                 save_persistent_data()
                 self.send_json({'success': True, 'theme': current_theme})
+
+            elif path == '/api/update-channel':
+                global update_channel
+                channel = data.get('channel', 'beta')
+                if channel in ('stable', 'beta'):
+                    update_channel = channel
+                    save_persistent_data()
+                    self.send_json({'success': True, 'channel': update_channel})
+                else:
+                    self.send_json({'success': False, 'error': 'Canale non valido'})
 
             elif path == '/api/auto-play':
                 auto_play = data.get('auto_play', True)
@@ -2432,6 +2479,30 @@ body {
     border-color: var(--accent-primary);
 }
 
+.channel-btn {
+    padding: 8px 14px;
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.channel-btn:hover {
+    border-color: var(--accent-primary);
+}
+
+.channel-btn.active {
+    background: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+}
+
 .theme-preview {
     width: 100%;
     height: 60px;
@@ -3255,11 +3326,27 @@ body {
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                 <div>
                                     <strong style="color: var(--accent-success);">Nuova versione disponibile: <span id="new-version">--</span></strong>
+                                    <span id="prerelease-badge" style="display: none; margin-left: 8px; padding: 2px 6px; background: var(--accent-warning); color: #000; border-radius: 4px; font-size: 10px; font-weight: bold;">BETA</span>
                                 </div>
                                 <a id="release-link" href="#" target="_blank" style="color: var(--accent-primary); font-size: 12px;">Vedi su GitHub</a>
                             </div>
                             <div id="release-notes" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; max-height: 100px; overflow-y: auto;"></div>
                             <div id="update-assets" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+                        </div>
+                    </div>
+
+                    <div class="settings-item" style="margin-top: 12px;">
+                        <div>
+                            <div class="settings-item-label">Canale aggiornamenti</div>
+                            <div class="settings-item-description">Beta include versioni di test, Stabile solo release ufficiali</div>
+                        </div>
+                        <div class="channel-selector" style="display: flex; gap: 8px;">
+                            <button class="channel-btn" id="channel-beta" onclick="setUpdateChannel('beta')">
+                                <span>🧪</span> Beta
+                            </button>
+                            <button class="channel-btn" id="channel-stable" onclick="setUpdateChannel('stable')">
+                                <span>✅</span> Stabile
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -3455,6 +3542,10 @@ async function loadConfig() {
         if (data.filter_mask) {
             document.getElementById('filter-mask').value = data.filter_mask;
         }
+
+        // Update channel selector
+        const channel = data.update_channel || 'beta';
+        updateChannelUI(channel);
     }
 }
 
@@ -4841,6 +4932,12 @@ async function checkForUpdates() {
         document.getElementById('release-link').href = data.release_url;
         document.getElementById('release-notes').textContent = data.release_notes || 'Nessuna nota di rilascio';
 
+        // Mostra badge pre-release se applicabile
+        const prereleaseBadge = document.getElementById('prerelease-badge');
+        if (prereleaseBadge) {
+            prereleaseBadge.style.display = data.is_prerelease ? 'inline' : 'none';
+        }
+
         // Mostra pulsanti per scaricare gli asset
         const assetsContainer = document.getElementById('update-assets');
         assetsContainer.innerHTML = '';
@@ -4874,6 +4971,24 @@ async function checkForUpdates() {
         updateInfo.style.display = 'none';
         showNotification('Sei già aggiornato!', 'success');
     }
+}
+
+async function setUpdateChannel(channel) {
+    const result = await apiCall('/api/update-channel', 'POST', { channel });
+    if (result && result.success) {
+        // Aggiorna UI pulsanti canale
+        document.querySelectorAll('.channel-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`channel-${channel}`).classList.add('active');
+
+        const channelName = channel === 'beta' ? 'Beta (include pre-release)' : 'Stabile';
+        showNotification(`Canale aggiornamenti: ${channelName}`, 'success');
+    }
+}
+
+function updateChannelUI(channel) {
+    document.querySelectorAll('.channel-btn').forEach(btn => btn.classList.remove('active'));
+    const btn = document.getElementById(`channel-${channel}`);
+    if (btn) btn.classList.add('active');
 }
 
 async function installUpdate(url, name) {
