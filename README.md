@@ -1,5 +1,8 @@
 # OBS Instant Replay
 
+[![Version](https://img.shields.io/badge/version-1.0--beta1-blue.svg)](https://github.com/angeloruggieridj/OBS-Instant-Replay/releases)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 [English](#english) | [Italiano](#italiano) | [Español](#español) | [Français](#français) | [Deutsch](#deutsch)
 
 ---
@@ -28,6 +31,11 @@ Advanced replay management system for OBS Studio with integrated web interface.
 - **READY/LIVE Modes**:
   - LIVE: Video starts automatically when loaded
   - READY: Video is loaded but waits for manual start (perfect for Stream Deck)
+
+- **Auto-Update System**:
+  - Check for updates from GitHub
+  - Download and install updates directly from the app
+  - Automatic backup of old files
 
 ### Requirements
 

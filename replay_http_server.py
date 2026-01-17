@@ -1,6 +1,9 @@
 """
-OBS Replay Manager - Server HTTP v4.0.0
-Versione estesa con funzionalità avanzate ispirate a viewer.html
+OBS Instant Replay - Server HTTP
+Versione: 1.0-beta1
+Repository: https://github.com/angeloruggieridj/OBS-Instant-Replay
+
+Funzionalità:
 - Sistema preferiti/favorites
 - Playlist/Queue management
 - Categorie personalizzate
@@ -10,6 +13,7 @@ Versione estesa con funzionalità avanzate ispirate a viewer.html
 - Temi personalizzabili
 - Zoom card
 - Persistenza dati
+- Verifica aggiornamenti da GitHub
 """
 
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -18,10 +22,16 @@ import os
 import sys
 import threading
 import urllib.parse
+import urllib.request
 from datetime import datetime
 import queue
 import subprocess
 import tempfile
+
+# Versione corrente
+VERSION = "1.0-beta1"
+GITHUB_REPO = "angeloruggieridj/OBS-Instant-Replay"
+GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
 # Variabili globali
 replay_folder = ""
@@ -111,6 +121,103 @@ def save_persistent_data():
 
     except Exception as e:
         print(f"[DATA] Errore salvataggio: {e}")
+
+
+def check_for_updates():
+    """Verifica se sono disponibili aggiornamenti da GitHub"""
+    try:
+        req = urllib.request.Request(
+            GITHUB_API_URL,
+            headers={'User-Agent': 'OBS-Instant-Replay'}
+        )
+        with urllib.request.urlopen(req, timeout=10) as response:
+            data = json.loads(response.read().decode('utf-8'))
+
+        latest_version = data.get('tag_name', '').lstrip('v')
+        release_notes = data.get('body', '')
+        release_url = data.get('html_url', '')
+        published_at = data.get('published_at', '')
+
+        # Trova gli asset scaricabili
+        assets = []
+        for asset in data.get('assets', []):
+            assets.append({
+                'name': asset.get('name'),
+                'download_url': asset.get('browser_download_url'),
+                'size': asset.get('size', 0)
+            })
+
+        # Confronta versioni
+        current = VERSION.replace('-', '.').replace('beta', '0.')
+        latest = latest_version.replace('-', '.').replace('beta', '0.')
+
+        is_update_available = latest_version != VERSION
+
+        return {
+            'success': True,
+            'current_version': VERSION,
+            'latest_version': latest_version,
+            'update_available': is_update_available,
+            'release_notes': release_notes,
+            'release_url': release_url,
+            'published_at': published_at,
+            'assets': assets
+        }
+
+    except urllib.error.URLError as e:
+        return {
+            'success': False,
+            'error': f'Errore di connessione: {str(e)}',
+            'current_version': VERSION
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e),
+            'current_version': VERSION
+        }
+
+
+def download_and_install_update(asset_url, asset_name):
+    """Scarica e installa l'aggiornamento"""
+    try:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+
+        # Scarica il file
+        req = urllib.request.Request(
+            asset_url,
+            headers={'User-Agent': 'OBS-Instant-Replay'}
+        )
+
+        download_path = os.path.join(script_dir, asset_name + '.new')
+
+        with urllib.request.urlopen(req, timeout=60) as response:
+            with open(download_path, 'wb') as f:
+                f.write(response.read())
+
+        # Backup del file corrente
+        if asset_name == 'replay_http_server.py':
+            current_file = os.path.join(script_dir, 'replay_http_server.py')
+            backup_file = os.path.join(script_dir, 'replay_http_server.py.backup')
+            if os.path.exists(current_file):
+                if os.path.exists(backup_file):
+                    os.remove(backup_file)
+                os.rename(current_file, backup_file)
+            os.rename(download_path, current_file)
+
+        elif asset_name == 'obs_replay_manager_browser.py':
+            current_file = os.path.join(script_dir, 'obs_replay_manager_browser.py')
+            backup_file = os.path.join(script_dir, 'obs_replay_manager_browser.py.backup')
+            if os.path.exists(current_file):
+                if os.path.exists(backup_file):
+                    os.remove(backup_file)
+                os.rename(current_file, backup_file)
+            os.rename(download_path, current_file)
+
+        return {'success': True, 'message': f'{asset_name} aggiornato. Riavvia OBS per applicare.'}
+
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
 
 
 def get_ffmpeg_subprocess_args():
@@ -486,6 +593,16 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                     })
             self.send_json({'highlights': highlights, 'count': len(highlights)})
 
+        elif path == '/api/version':
+            self.send_json({
+                'version': VERSION,
+                'repository': GITHUB_REPO
+            })
+
+        elif path == '/api/check-updates':
+            result = check_for_updates()
+            self.send_json(result)
+
         elif path.startswith('/api/thumbnail/'):
             try:
                 index = int(path.split('/')[-1])
@@ -820,6 +937,15 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                     'action': 'open_folder'
                 })
                 self.send_json({'success': True})
+
+            elif path == '/api/install-update':
+                asset_url = data.get('url', '')
+                asset_name = data.get('name', '')
+                if asset_url and asset_name:
+                    result = download_and_install_update(asset_url, asset_name)
+                    self.send_json(result)
+                else:
+                    self.send_json({'success': False, 'error': 'URL o nome file mancante'})
 
             else:
                 self.send_error(404)
@@ -2578,6 +2704,32 @@ body {
                     </div>
                 </div>
 
+                <div class="settings-section">
+                    <div class="settings-section-title">Aggiornamenti Software</div>
+                    <div class="settings-item" style="flex-direction: column; align-items: flex-start; gap: 12px;">
+                        <div style="display: flex; width: 100%; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div class="settings-item-label">Versione corrente: <span id="current-version">--</span></div>
+                                <div class="settings-item-description" id="update-status">Clicca per verificare aggiornamenti</div>
+                            </div>
+                            <button class="header-btn" id="check-updates-btn" onclick="checkForUpdates()">
+                                <span>🔄</span>
+                                <span>Verifica aggiornamenti</span>
+                            </button>
+                        </div>
+                        <div id="update-info" style="display: none; width: 100%; padding: 12px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <div>
+                                    <strong style="color: var(--accent-success);">Nuova versione disponibile: <span id="new-version">--</span></strong>
+                                </div>
+                                <a id="release-link" href="#" target="_blank" style="color: var(--accent-primary); font-size: 12px;">Vedi su GitHub</a>
+                            </div>
+                            <div id="release-notes" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; max-height: 100px; overflow-y: auto;"></div>
+                            <div id="update-assets" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
             <!-- Categories Panel -->
@@ -2769,6 +2921,7 @@ async function init() {
     await loadConfig();
     await loadCategories();
     await loadReplays();
+    await loadVersion();
     startAutoRefresh();
 }
 
@@ -3933,6 +4086,86 @@ async function toggleAutoPlay() {
     if (result && result.success) {
         const mode = autoPlay ? 'LIVE (avvio automatico)' : 'READY (caricamento solo)';
         showNotification(`Modalità impostata: ${mode}`, 'success');
+    }
+}
+
+async function loadVersion() {
+    const data = await apiCall('/api/version');
+    if (data) {
+        document.getElementById('current-version').textContent = data.version;
+    }
+}
+
+async function checkForUpdates() {
+    const btn = document.getElementById('check-updates-btn');
+    const status = document.getElementById('update-status');
+    const updateInfo = document.getElementById('update-info');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span><span>Verificando...</span>';
+    status.textContent = 'Verifica in corso...';
+
+    const data = await apiCall('/api/check-updates');
+
+    btn.disabled = false;
+    btn.innerHTML = '<span>🔄</span><span>Verifica aggiornamenti</span>';
+
+    if (!data || !data.success) {
+        status.textContent = data?.error || 'Errore durante la verifica';
+        updateInfo.style.display = 'none';
+        showNotification('Errore verifica aggiornamenti', 'error');
+        return;
+    }
+
+    document.getElementById('current-version').textContent = data.current_version;
+
+    if (data.update_available) {
+        status.textContent = 'Aggiornamento disponibile!';
+        status.style.color = 'var(--accent-success)';
+        updateInfo.style.display = 'block';
+        document.getElementById('new-version').textContent = data.latest_version;
+        document.getElementById('release-link').href = data.release_url;
+        document.getElementById('release-notes').textContent = data.release_notes || 'Nessuna nota di rilascio';
+
+        // Mostra pulsanti per scaricare gli asset
+        const assetsContainer = document.getElementById('update-assets');
+        assetsContainer.innerHTML = '';
+
+        if (data.assets && data.assets.length > 0) {
+            data.assets.forEach(asset => {
+                if (asset.name.endsWith('.py')) {
+                    const btn = document.createElement('button');
+                    btn.className = 'header-btn';
+                    btn.innerHTML = \`<span>📥</span><span>Installa \${asset.name}</span>\`;
+                    btn.onclick = () => installUpdate(asset.download_url, asset.name);
+                    assetsContainer.appendChild(btn);
+                }
+            });
+        }
+
+        showNotification(\`Nuova versione disponibile: \${data.latest_version}\`, 'success');
+    } else {
+        status.textContent = \`Hai l'ultima versione (\${data.current_version})\`;
+        status.style.color = 'var(--text-secondary)';
+        updateInfo.style.display = 'none';
+        showNotification('Sei già aggiornato!', 'success');
+    }
+}
+
+async function installUpdate(url, name) {
+    if (!confirm(\`Vuoi installare l'aggiornamento per \${name}?\\n\\nOBS Studio dovrà essere riavviato dopo l'installazione.\`)) {
+        return;
+    }
+
+    showNotification(\`Scaricamento \${name}...\`, 'info');
+
+    const result = await apiCall('/api/install-update', 'POST', { url, name });
+
+    if (result && result.success) {
+        showNotification(result.message, 'success');
+        alert(\`\${name} aggiornato con successo!\\n\\nRiavvia OBS Studio per applicare le modifiche.\`);
+    } else {
+        showNotification(\`Errore: \${result?.error || 'Sconosciuto'}\`, 'error');
     }
 }
 

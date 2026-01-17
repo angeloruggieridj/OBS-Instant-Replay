@@ -15,28 +15,13 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, script_dir)
 
 try:
-    import replay_http_server_v4 as server
+    import replay_http_server as server
     SERVER_AVAILABLE = True
-    SERVER_VERSION = "v4.0.0"
-except ImportError:
-    try:
-        import replay_http_server_v3 as server
-        SERVER_AVAILABLE = True
-        SERVER_VERSION = "v3.x"
-    except ImportError:
-        try:
-            import replay_http_server_v2 as server
-            SERVER_AVAILABLE = True
-            SERVER_VERSION = "v2.x"
-        except ImportError:
-            try:
-                import replay_http_server as server
-                SERVER_AVAILABLE = True
-                SERVER_VERSION = "v1.x"
-            except ImportError as e:
-                SERVER_AVAILABLE = False
-                SERVER_VERSION = None
-                print(f"✗ Impossibile importare replay_http_server: {e}")
+    SERVER_VERSION = "1.0-beta1"
+except ImportError as e:
+    SERVER_AVAILABLE = False
+    SERVER_VERSION = None
+    print(f"✗ Impossibile importare replay_http_server: {e}")
 
 # Variabili globali
 replay_folder = ""
