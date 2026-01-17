@@ -17,7 +17,7 @@ sys.path.insert(0, script_dir)
 try:
     import replay_http_server as server
     SERVER_AVAILABLE = True
-    SERVER_VERSION = "1.0-beta1"
+    SERVER_VERSION = "1.0-beta2"
 except ImportError as e:
     SERVER_AVAILABLE = False
     SERVER_VERSION = None

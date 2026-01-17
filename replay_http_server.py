@@ -1,6 +1,6 @@
 """
 OBS Instant Replay - Server HTTP
-Versione: 1.0-beta1
+Versione: 1.0-beta2
 Repository: https://github.com/angeloruggieridj/OBS-Instant-Replay
 
 Funzionalità:
@@ -29,7 +29,7 @@ import subprocess
 import tempfile
 
 # Versione corrente
-VERSION = "1.0-beta1"
+VERSION = "1.0-beta2"
 GITHUB_REPO = "angeloruggieridj/OBS-Instant-Replay"
 GITHUB_RELEASES_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 GITHUB_TAGS_URL = f"https://api.github.com/repos/{GITHUB_REPO}/tags"

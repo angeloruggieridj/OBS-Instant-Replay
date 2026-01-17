@@ -1,6 +1,6 @@
 # OBS Instant Replay
 
-[![Version](https://img.shields.io/badge/version-1.0--beta1-blue.svg)](https://github.com/angeloruggieridj/OBS-Instant-Replay/releases)
+[![Version](https://img.shields.io/badge/version-1.0--beta2-blue.svg)](https://github.com/angeloruggieridj/OBS-Instant-Replay/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [English](#english) | [Italiano](#italiano) | [Español](#español) | [Français](#français) | [Deutsch](#deutsch)
