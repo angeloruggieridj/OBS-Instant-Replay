@@ -597,6 +597,10 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
         elif path == '/api/config':
             self.send_json({
                 'replay_folder': replay_folder,
+                'media_source_name': media_source_name,
+                'target_scene_name': target_scene_name,
+                'auto_switch_scene': auto_switch_scene,
+                'filter_mask': filter_mask,
                 'refresh_interval': refresh_interval_seconds,
                 'current_speed': current_speed,
                 'current_theme': current_theme,
@@ -1000,6 +1004,30 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                     self.send_json(result)
                 else:
                     self.send_json({'success': False, 'error': 'URL o nome file mancante'})
+
+            elif path == '/api/obs-settings':
+                global replay_folder, media_source_name, target_scene_name, auto_switch_scene, filter_mask
+
+                new_folder = data.get('replay_folder', replay_folder)
+                if new_folder and os.path.isdir(new_folder):
+                    replay_folder = new_folder
+
+                media_source_name = data.get('media_source_name', media_source_name)
+                target_scene_name = data.get('target_scene_name', target_scene_name)
+                auto_switch_scene = data.get('auto_switch_scene', auto_switch_scene)
+                filter_mask = data.get('filter_mask', filter_mask)
+
+                save_persistent_data()
+                scan_replay_folder()
+
+                self.send_json({
+                    'success': True,
+                    'replay_folder': replay_folder,
+                    'media_source_name': media_source_name,
+                    'target_scene_name': target_scene_name,
+                    'auto_switch_scene': auto_switch_scene,
+                    'filter_mask': filter_mask
+                })
 
             else:
                 self.send_error(404)
@@ -2776,20 +2804,12 @@ body {
                     <div class="settings-item">
                         <div>
                             <div class="settings-item-label">Percorso corrente</div>
-                            <div class="settings-item-description" id="current-folder">--</div>
+                            <div class="settings-item-description" id="current-folder" style="word-break: break-all;">Non configurata</div>
                         </div>
-                        <button class="header-btn" onclick="openFolder()">Apri cartella</button>
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <div class="settings-section-title">Aggiornamento</div>
-                    <div class="settings-item">
-                        <div>
-                            <div class="settings-item-label">Intervallo refresh</div>
-                            <div class="settings-item-description">Secondi tra ogni scan automatico</div>
+                        <div style="display: flex; gap: 6px;">
+                            <button class="header-btn" onclick="switchSettingsTab('advanced')">Configura</button>
+                            <button class="header-btn" onclick="openFolder()">Apri</button>
                         </div>
-                        <input type="number" class="settings-input" id="refresh-interval" min="1" max="60" value="3">
                     </div>
                 </div>
 
@@ -2857,14 +2877,48 @@ body {
             <!-- Advanced Panel -->
             <div class="settings-panel" id="panel-advanced">
                 <div class="settings-section">
-                    <div class="settings-section-title">Opzioni Avanzate</div>
+                    <div class="settings-section-title">Configurazione OBS</div>
+                    <div class="settings-item" style="flex-direction: column; align-items: stretch; gap: 8px;">
+                        <div>
+                            <div class="settings-item-label">Cartella Replay</div>
+                            <div class="settings-item-description">Percorso della cartella contenente i replay</div>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="text" class="settings-input" id="replay-folder-path" style="flex: 1;" placeholder="Seleziona cartella...">
+                            <button class="header-btn" onclick="browseFolder()">
+                                <span>📁</span>
+                                <span>Sfoglia</span>
+                            </button>
+                        </div>
+                    </div>
                     <div class="settings-item">
                         <div>
-                            <div class="settings-item-label">Auto-switch scena OBS</div>
+                            <div class="settings-item-label">Nome Media Source</div>
+                            <div class="settings-item-description">Nome della sorgente multimediale in OBS</div>
+                        </div>
+                        <input type="text" class="settings-input" id="media-source-name" placeholder="es. Replay Source">
+                    </div>
+                    <div class="settings-item">
+                        <div>
+                            <div class="settings-item-label">Scena Target</div>
+                            <div class="settings-item-description">Scena OBS dove caricare i replay</div>
+                        </div>
+                        <input type="text" class="settings-input" id="target-scene-name" placeholder="es. Replay Scene">
+                    </div>
+                    <div class="settings-item">
+                        <div>
+                            <div class="settings-item-label">Auto-switch scena</div>
                             <div class="settings-item-description">Cambia automaticamente scena quando carichi un video</div>
                         </div>
-                        <input type="checkbox" id="auto-switch">
+                        <label class="switch">
+                            <input type="checkbox" id="auto-switch-scene">
+                            <span class="slider"></span>
+                        </label>
                     </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="settings-section-title">Filtri</div>
                     <div class="settings-item">
                         <div>
                             <div class="settings-item-label">Filtro nome file</div>
@@ -2872,6 +2926,13 @@ body {
                         </div>
                         <input type="text" class="settings-input" id="filter-mask" placeholder="es. Replay_">
                     </div>
+                </div>
+
+                <div class="settings-section" style="margin-top: 16px;">
+                    <button class="header-btn primary" onclick="saveOBSSettings()" style="width: 100%; justify-content: center;">
+                        <span>💾</span>
+                        <span>Salva Impostazioni</span>
+                    </button>
                 </div>
             </div>
 
@@ -3099,10 +3160,56 @@ async function loadConfig() {
         // Update auto-play toggle
         document.getElementById('auto-play-toggle').checked = autoPlay;
 
-        // Update current folder in settings
+        // Update OBS settings in Advanced panel
         if (data.replay_folder) {
+            document.getElementById('replay-folder-path').value = data.replay_folder;
             document.getElementById('current-folder').textContent = data.replay_folder;
         }
+        if (data.media_source_name) {
+            document.getElementById('media-source-name').value = data.media_source_name;
+        }
+        if (data.target_scene_name) {
+            document.getElementById('target-scene-name').value = data.target_scene_name;
+        }
+        document.getElementById('auto-switch-scene').checked = data.auto_switch_scene || false;
+        if (data.filter_mask) {
+            document.getElementById('filter-mask').value = data.filter_mask;
+        }
+    }
+}
+
+async function saveOBSSettings() {
+    const settings = {
+        replay_folder: document.getElementById('replay-folder-path').value,
+        media_source_name: document.getElementById('media-source-name').value,
+        target_scene_name: document.getElementById('target-scene-name').value,
+        auto_switch_scene: document.getElementById('auto-switch-scene').checked,
+        filter_mask: document.getElementById('filter-mask').value
+    };
+
+    const result = await apiCall('/api/obs-settings', 'POST', settings);
+
+    if (result && result.success) {
+        showNotification('Impostazioni salvate', 'success');
+        await loadReplays();
+    } else {
+        showNotification('Errore nel salvataggio', 'error');
+    }
+}
+
+function browseFolder() {
+    // Nel browser non possiamo aprire un file picker nativo per le cartelle
+    // L'utente deve inserire manualmente il percorso
+    const currentPath = document.getElementById('replay-folder-path').value;
+    const newPath = prompt(
+        'Inserisci il percorso completo della cartella replay:\\n\\n' +
+        'Esempio Windows: C:\\\\Users\\\\Nome\\\\Videos\\\\Replay\\n' +
+        'Esempio Mac/Linux: /home/utente/Videos/Replay',
+        currentPath
+    );
+
+    if (newPath !== null && newPath.trim() !== '') {
+        document.getElementById('replay-folder-path').value = newPath.trim();
     }
 }
 
