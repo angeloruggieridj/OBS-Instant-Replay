@@ -1191,21 +1191,141 @@ body {
     border-color: var(--accent-primary);
 }
 
-.category-select {
+/* Filter Dropdown */
+.filter-dropdown-container {
+    position: relative;
+}
+
+.filter-dropdown-trigger {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     padding: 8px 14px;
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: 20px;
-    color: var(--text-primary);
     cursor: pointer;
+    transition: all 0.15s;
     font-size: 13px;
-    font-weight: 500;
-    min-width: 180px;
 }
 
-.category-select option {
-    padding: 8px;
+.filter-dropdown-trigger:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-hover);
+}
+
+.filter-dropdown-trigger .filter-icon {
+    font-size: 14px;
+}
+
+.filter-dropdown-trigger .filter-text {
+    color: var(--text-primary);
     font-weight: 500;
+}
+
+.filter-dropdown-trigger .dropdown-arrow {
+    font-size: 10px;
+    color: var(--text-secondary);
+    transition: transform 0.2s;
+}
+
+.filter-dropdown-container.open .dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+.filter-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 220px;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    z-index: 100;
+    overflow: hidden;
+    display: none;
+}
+
+.filter-dropdown-container.open .filter-dropdown-menu {
+    display: block;
+    animation: dropdownFadeIn 0.15s ease;
+}
+
+@keyframes dropdownFadeIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.filter-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: all 0.1s;
+}
+
+.filter-dropdown-item:hover {
+    background: #3a3a3a;
+}
+
+.filter-dropdown-item.selected {
+    background: linear-gradient(90deg, #264f78 0%, #1e3a5f 100%);
+}
+
+.filter-dropdown-item .item-checkbox {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #555;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+
+.filter-dropdown-item.selected .item-checkbox {
+    background: #007acc;
+    border-color: #007acc;
+}
+
+.filter-dropdown-item.selected .item-checkbox::after {
+    content: '✓';
+    color: #fff;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.filter-dropdown-item .item-color {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.filter-dropdown-item .item-name {
+    flex: 1;
+    color: #ccc;
+    font-size: 0.85rem;
+}
+
+.filter-dropdown-item.selected .item-name {
+    color: #fff;
+}
+
+.filter-dropdown-item .item-count {
+    color: #666;
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 10px;
+}
+
+.filter-dropdown-item.selected .item-count {
+    background: rgba(0,0,0,0.2);
+    color: #aaa;
 }
 
 /* ==================== VIDEO GRID ==================== */
@@ -1230,9 +1350,16 @@ body {
 }
 
 .video-card:hover {
-    transform: translateY(-4px);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
     border-color: var(--accent-primary);
+}
+
+.video-card:hover .video-thumbnail video {
+    opacity: 1;
+}
+
+.video-card:hover .video-thumbnail img {
+    opacity: 0;
 }
 
 .video-thumbnail {
@@ -1260,9 +1387,8 @@ body {
     object-fit: cover;
     opacity: 0;
     transition: opacity 0.3s ease;
+    pointer-events: none;
 }
-
-/* Rimosso hover video per evitare glitch */
 
 .video-badges {
     position: absolute;
@@ -1811,13 +1937,18 @@ body {
     position: relative;
     display: inline-block;
     width: 50px;
-    height: 24px;
+    height: 26px;
+    flex-shrink: 0;
 }
 
 .switch input {
+    position: absolute;
     opacity: 0;
-    width: 0;
-    height: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    cursor: pointer;
+    z-index: 1;
 }
 
 .slider {
@@ -1827,29 +1958,30 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #ccc;
-    transition: .4s;
-    border-radius: 24px;
+    background-color: #555;
+    transition: background-color 0.3s ease;
+    border-radius: 26px;
 }
 
 .slider:before {
     position: absolute;
     content: "";
-    height: 18px;
-    width: 18px;
+    height: 20px;
+    width: 20px;
     left: 3px;
-    bottom: 3px;
+    top: 3px;
     background-color: white;
-    transition: .4s;
+    transition: transform 0.3s ease;
     border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
-input:checked + .slider {
-    background-color: var(--accent-primary);
+.switch input:checked + .slider {
+    background-color: #10b981;
 }
 
-input:checked + .slider:before {
-    transform: translateX(26px);
+.switch input:checked + .slider:before {
+    transform: translateX(24px);
 }
 
 .settings-input {
@@ -2280,9 +2412,16 @@ input:checked + .slider:before {
             <span>📋</span>
             <span>In coda</span>
         </button>
-        <select class="category-select" id="category-filter" onchange="filterVideos()">
-            <option value="">Tutte le categorie</option>
-        </select>
+        <div class="filter-dropdown-container" id="category-dropdown">
+            <div class="filter-dropdown-trigger" onclick="toggleCategoryDropdown()">
+                <span class="filter-icon">🏷️</span>
+                <span class="filter-text" id="category-filter-text">Categorie</span>
+                <span class="dropdown-arrow">▼</span>
+            </div>
+            <div class="filter-dropdown-menu" id="category-dropdown-menu">
+                <!-- Items populated by JS -->
+            </div>
+        </div>
     </div>
 </div>
 
@@ -2868,11 +3007,7 @@ function filterVideos() {
         currentFilter.search = searchInput.value.toLowerCase();
     }
 
-    // Get category filter
-    const categorySelect = document.getElementById('category-filter');
-    if (categorySelect) {
-        currentFilter.category = categorySelect.value;
-    }
+    // Category filter is now set via selectCategory()
 
     // Apply filters
     let filtered = allReplays.filter(replay => {
@@ -2917,7 +3052,113 @@ function renderVideoGrid(replays = allReplays) {
         return;
     }
 
-    grid.innerHTML = replays.map(replay => createVideoCard(replay)).join('');
+    // Ottieni le card esistenti
+    const existingCards = grid.querySelectorAll('.video-card');
+    const existingIndexes = new Set();
+    existingCards.forEach(card => {
+        existingIndexes.add(parseInt(card.dataset.index));
+    });
+
+    // Costruisci set di indici dei replay da mostrare
+    const replayIndexes = new Set(replays.map(r => r.index));
+
+    // Rimuovi card non più presenti
+    existingCards.forEach(card => {
+        const idx = parseInt(card.dataset.index);
+        if (!replayIndexes.has(idx)) {
+            card.remove();
+        }
+    });
+
+    // Aggiorna o crea card per ogni replay
+    replays.forEach((replay, position) => {
+        const existingCard = grid.querySelector(`.video-card[data-index="${replay.index}"]`);
+
+        if (existingCard) {
+            // Aggiorna solo i badge e le info, non ricreare il video
+            updateCardBadges(existingCard, replay);
+        } else {
+            // Crea nuova card
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = createVideoCard(replay);
+            const newCard = tempDiv.firstElementChild;
+
+            // Inserisci nella posizione corretta
+            const children = grid.children;
+            if (position < children.length) {
+                grid.insertBefore(newCard, children[position]);
+            } else {
+                grid.appendChild(newCard);
+            }
+        }
+    });
+
+    // Riordina le card se necessario
+    replays.forEach((replay, position) => {
+        const card = grid.querySelector(`.video-card[data-index="${replay.index}"]`);
+        if (card && card !== grid.children[position]) {
+            grid.insertBefore(card, grid.children[position]);
+        }
+    });
+}
+
+function updateCardBadges(card, replay) {
+    // Aggiorna badge LIVE/READY
+    const thumbnail = card.querySelector('.video-thumbnail');
+    let statusBadge = thumbnail.querySelector('.badge-live, .badge-ready');
+
+    if (replay.is_playing) {
+        if (!statusBadge || !statusBadge.classList.contains('badge-live')) {
+            if (statusBadge) statusBadge.remove();
+            const badge = document.createElement('div');
+            badge.className = 'badge-live';
+            badge.innerHTML = '● LIVE';
+            thumbnail.insertBefore(badge, thumbnail.querySelector('.video-badges'));
+        }
+    } else if (replay.is_ready) {
+        if (!statusBadge || !statusBadge.classList.contains('badge-ready')) {
+            if (statusBadge) statusBadge.remove();
+            const badge = document.createElement('div');
+            badge.className = 'badge-ready';
+            badge.innerHTML = '● READY';
+            thumbnail.insertBefore(badge, thumbnail.querySelector('.video-badges'));
+        }
+    } else {
+        if (statusBadge) statusBadge.remove();
+    }
+
+    // Aggiorna altri badge
+    const badgesContainer = card.querySelector('.video-badges');
+    const badges = [];
+
+    if (replay.favorite) {
+        badges.push('<div class="video-badge badge-favorite">⭐ Preferito</div>');
+    }
+
+    if (replay.category) {
+        const categoryColor = replay.category_color || '#888';
+        badges.push(`<div class="video-badge badge-category" style="background-color: ${categoryColor}; color: white;">${replay.category}</div>`);
+    }
+
+    if (replay.in_queue) {
+        badges.push(`<div class="video-badge badge-queue">#${replay.queue_index + 1} Coda</div>`);
+    }
+
+    if (replay.duration_str) {
+        badges.push(`<div class="video-badge badge-duration">⏱️ ${replay.duration_str}</div>`);
+    }
+
+    badgesContainer.innerHTML = badges.join('');
+
+    // Aggiorna pulsante preferito
+    const favBtn = card.querySelector('.video-action-btn');
+    if (favBtn) {
+        if (replay.favorite) {
+            favBtn.classList.add('active');
+        } else {
+            favBtn.classList.remove('active');
+        }
+    }
 }
 
 function createVideoCard(replay) {
@@ -3045,64 +3286,61 @@ function showContextMenu(event, index) {
     const replay = allReplays.find(r => r.index === index);
     if (!replay) return;
 
-    const menu = document.getElementById('context-menu');
+    // Remove existing menu
+    const existing = document.getElementById('context-menu');
+    if (existing) existing.remove();
 
-    // Build category submenu
-    let categorySubmenu = '';
-    if (Object.keys(categories).length > 0) {
-        categorySubmenu = '<div class="context-submenu">';
-        for (const [name, color] of Object.entries(categories)) {
-            const isActive = replay.category === name ? ' (✓)' : '';
-            categorySubmenu += `<div class="context-menu-item" onclick="assignCategory(${index}, '${name}')">${name}${isActive}</div>`;
-        }
-        if (replay.category) {
-            categorySubmenu += '<div class="context-menu-separator"></div>';
-            categorySubmenu += `<div class="context-menu-item" onclick="assignCategory(${index}, null)">Rimuovi categoria</div>`;
-        }
-        categorySubmenu += '</div>';
+    // Create new menu element
+    const menu = document.createElement('div');
+    menu.id = 'context-menu';
+    menu.style.cssText = `position:fixed;left:${event.clientX}px;top:${event.clientY}px;background:#2a2a2a;border:1px solid #444;border-radius:4px;padding:4px 0;z-index:2000;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.5);`;
+
+    const isFav = replay.favorite;
+
+    let html = '';
+    // Favorite option at top
+    if (isFav) {
+        html += `<div style="padding:8px 12px;cursor:pointer;font-size:0.75rem;color:#f39c12;display:flex;align-items:center;gap:8px;border-bottom:1px solid #444;" onmouseover="this.style.background='#333'" onmouseout="this.style.background=''" onclick="toggleFavorite(${index}); hideContextMenu();"><span style="font-size:1rem;">★</span>Rimuovi da preferiti</div>`;
+    } else {
+        html += `<div style="padding:8px 12px;cursor:pointer;font-size:0.75rem;color:#ccc;display:flex;align-items:center;gap:8px;border-bottom:1px solid #444;" onmouseover="this.style.background='#333'" onmouseout="this.style.background=''" onclick="toggleFavorite(${index}); hideContextMenu();"><span style="font-size:1rem;">⭐</span>Aggiungi a preferiti</div>`;
     }
 
-    menu.innerHTML = `
-        <div class="context-menu-item" onclick="loadVideo(${index}); hideContextMenu();">
-            <span>▶️</span>
-            <span>Carica</span>
-        </div>
-        <div class="context-menu-item" onclick="toggleFavorite(${index}); hideContextMenu();">
-            <span>${replay.favorite ? '⭐' : '☆'}</span>
-            <span>${replay.favorite ? 'Rimuovi da preferiti' : 'Aggiungi a preferiti'}</span>
-        </div>
-        <div class="context-menu-item" onclick="addToQueue(${index}); hideContextMenu();">
-            <span>📋</span>
-            <span>Aggiungi a coda</span>
-        </div>
-        <div class="context-menu-separator"></div>
-        ${Object.keys(categories).length > 0 ? `
-        <div class="context-menu-item context-menu-submenu">
-            <span>🏷️</span>
-            <span>Assegna categoria</span>
-            <span class="submenu-arrow">▶</span>
-            ${categorySubmenu}
-        </div>
-        ` : ''}
-        <div class="context-menu-item" onclick="hideVideo(${index}); hideContextMenu();">
-            <span>👁️</span>
-            <span>Nascondi</span>
-        </div>
-        <div class="context-menu-separator"></div>
-        <div class="context-menu-item danger" onclick="deleteVideo(${index}); hideContextMenu();">
-            <span>🗑️</span>
-            <span>Elimina</span>
-        </div>
-    `;
+    // Category section
+    html += '<div style="padding:4px 10px;color:#888;font-size:0.65rem;text-transform:uppercase;margin-top:4px;">Categoria</div>';
+    html += `<div style="padding:6px 10px;cursor:pointer;font-size:0.75rem;color:#ccc;display:flex;align-items:center;gap:6px;" onmouseover="this.style.background='#333'" onmouseout="this.style.background=''" onclick="assignCategory(${index}, null); hideContextMenu();"><span style="width:10px;height:10px;background:#555;border-radius:2px;"></span>Nessuna</div>`;
 
-    menu.style.left = event.pageX + 'px';
-    menu.style.top = event.pageY + 'px';
-    menu.classList.add('active');
+    Object.entries(categories).forEach(([name, data]) => {
+        const isActive = replay.category === name;
+        const color = data.color || data;  // Supporta sia {color, count} che solo colore
+        html += `<div style="padding:6px 10px;cursor:pointer;font-size:0.75rem;color:#ccc;display:flex;align-items:center;gap:6px;" onmouseover="this.style.background='#333'" onmouseout="this.style.background=''" onclick="assignCategory(${index}, '${name.replace(/'/g, "\\'")}'); hideContextMenu();"><span style="width:10px;height:10px;background:${color};border-radius:2px;"></span>${isActive ? '✓ ' : ''}${name}</div>`;
+    });
+
+    if (Object.keys(categories).length === 0) {
+        html += '<div style="padding:6px 10px;color:#666;font-size:0.7rem;">Nessuna categoria</div>';
+    }
+
+    menu.innerHTML = html;
+    document.body.appendChild(menu);
+
+    // Adjust position if menu goes off screen
+    const rect = menu.getBoundingClientRect();
+    if (rect.right > window.innerWidth) menu.style.left = (window.innerWidth - rect.width - 10) + 'px';
+    if (rect.bottom > window.innerHeight) menu.style.top = (window.innerHeight - rect.height - 10) + 'px';
+
+    // Close on click outside
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu(e) {
+            if (!menu.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        });
+    }, 10);
 }
 
 function hideContextMenu() {
     const menu = document.getElementById('context-menu');
-    menu.classList.remove('active');
+    if (menu) menu.remove();
     contextMenuIndex = -1;
 }
 
@@ -3118,13 +3356,6 @@ async function assignCategory(index, categoryName) {
     }
     hideContextMenu();
 }
-
-// Close context menu on click outside
-document.addEventListener('click', (e) => {
-    if (!e.target.closest('.context-menu')) {
-        hideContextMenu();
-    }
-});
 
 // ==================== PLAYLIST FUNCTIONS ====================
 async function loadPlaylist() {
@@ -3602,18 +3833,64 @@ function renderCategories() {
 }
 
 function updateCategoryFilter() {
-    const select = document.getElementById('category-filter');
-    select.innerHTML = '<option value="">Tutte le categorie</option>';
+    const menu = document.getElementById('category-dropdown-menu');
+    const filterText = document.getElementById('category-filter-text');
+    if (!menu) return;
 
+    const totalVideos = allReplays.length;
+    let html = '';
+
+    // All categories option
+    const allSelected = !currentFilter.category;
+    html += `<div class="filter-dropdown-item ${allSelected ? 'selected' : ''}" onclick="selectCategory(null); event.stopPropagation();">
+        <span class="item-checkbox"></span>
+        <span class="item-color" style="background:#666;"></span>
+        <span class="item-name">Tutte le categorie</span>
+        <span class="item-count">${totalVideos}</span>
+    </div>`;
+
+    // Category options
     Object.entries(categories).forEach(([name, data]) => {
-        const option = document.createElement('option');
-        option.value = name;
-        option.textContent = `${name} (${data.count})`;
-        option.style.color = data.color;
-        option.style.fontWeight = '500';
-        select.appendChild(option);
+        const isSelected = currentFilter.category === name;
+        html += `<div class="filter-dropdown-item ${isSelected ? 'selected' : ''}" onclick="selectCategory('${name.replace(/'/g, "\\'")}'); event.stopPropagation();">
+            <span class="item-checkbox"></span>
+            <span class="item-color" style="background:${data.color};"></span>
+            <span class="item-name">${name}</span>
+            <span class="item-count">${data.count}</span>
+        </div>`;
     });
+
+    menu.innerHTML = html;
+
+    // Update trigger text
+    if (filterText) {
+        if (currentFilter.category) {
+            filterText.textContent = currentFilter.category;
+        } else {
+            filterText.textContent = 'Categorie';
+        }
+    }
 }
+
+function toggleCategoryDropdown() {
+    const container = document.getElementById('category-dropdown');
+    container.classList.toggle('open');
+}
+
+function selectCategory(category) {
+    currentFilter.category = category;
+    document.getElementById('category-dropdown').classList.remove('open');
+    updateCategoryFilter();
+    filterVideos();
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('category-dropdown');
+    if (dropdown && !dropdown.contains(e.target)) {
+        dropdown.classList.remove('open');
+    }
+});
 
 async function addCategory() {
     const nameInput = document.getElementById('new-category-name');

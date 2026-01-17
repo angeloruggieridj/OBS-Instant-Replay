@@ -87,18 +87,27 @@ def load_replay_to_source(file_path, auto_play=True):
         obs.obs_data_set_string(settings, "local_file", file_path)
         obs.obs_data_set_bool(settings, "is_local_file", True)
         obs.obs_data_set_bool(settings, "looping", False)
-        obs.obs_data_set_bool(settings, "restart_on_activate", True)
         obs.obs_data_set_bool(settings, "hw_decode", True)
-        
+
+        # READY mode: disabilita restart_on_activate per evitare avvio automatico
+        # Questo è fondamentale in Studio Mode dove la transizione attiverebbe il video
+        if auto_play:
+            obs.obs_data_set_bool(settings, "restart_on_activate", True)
+        else:
+            obs.obs_data_set_bool(settings, "restart_on_activate", False)
+            obs.obs_data_set_bool(settings, "close_when_inactive", False)
+
         obs.obs_source_update(source, settings)
         obs.obs_data_release(settings)
 
-        # Avvia solo se auto_play è True
+        # Gestione riproduzione
         if auto_play:
             obs.obs_source_media_restart(source)
         else:
-            # Carica ma non avviare (READY mode)
+            # READY mode: ferma e vai all'inizio senza riprodurre
             obs.obs_source_media_stop(source)
+            # Imposta il tempo a 0 per essere pronti all'avvio
+            obs.obs_source_media_set_time(source, 0)
         
         if auto_switch_scene:
             scenes = obs.obs_frontend_get_scenes()
@@ -428,9 +437,23 @@ def check_actions_timer():
                                 server.current_playing_video = None
                                 server.current_ready_video = None
                             elif media_state == 2 and server.current_ready_video:  # PLAYING
-                                # Video READY è stato avviato manualmente, passa a LIVE
-                                server.current_playing_video = server.current_ready_video
-                                server.current_ready_video = None
+                                # Video READY è stato avviato manualmente
+                                # In Studio Mode, verifica se la scena è in Program prima di passare a LIVE
+                                studio_mode_active = obs.obs_frontend_preview_program_mode_active()
+                                if studio_mode_active:
+                                    # Ottieni la scena corrente in Program
+                                    program_scene_source = obs.obs_frontend_get_current_scene()
+                                    if program_scene_source:
+                                        program_scene_name = obs.obs_source_get_name(program_scene_source)
+                                        obs.obs_source_release(program_scene_source)
+                                        # Solo se la scena è in Program, passa a LIVE
+                                        if program_scene_name == target_scene_name:
+                                            server.current_playing_video = server.current_ready_video
+                                            server.current_ready_video = None
+                                else:
+                                    # Senza Studio Mode, passa subito a LIVE
+                                    server.current_playing_video = server.current_ready_video
+                                    server.current_ready_video = None
                             elif media_state == 1 and server.current_playing_video:  # STOPPED
                                 # Video LIVE è stato fermato manualmente
                                 server.current_playing_video = None
