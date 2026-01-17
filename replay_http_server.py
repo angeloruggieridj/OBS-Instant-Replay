@@ -153,19 +153,37 @@ def check_for_updates():
             with urllib.request.urlopen(req, timeout=10) as response:
                 data = json.loads(response.read().decode('utf-8'))
 
-            latest_version = data.get('tag_name', '').lstrip('v')
+            tag_name = data.get('tag_name', '')
+            latest_version = tag_name.lstrip('v')
             release_notes = data.get('body', '')
             release_url = data.get('html_url', '')
             published_at = data.get('published_at', '')
 
-            # Trova gli asset scaricabili
+            # Trova gli asset scaricabili dalla release
             assets = []
             for asset in data.get('assets', []):
-                assets.append({
-                    'name': asset.get('name'),
-                    'download_url': asset.get('browser_download_url'),
-                    'size': asset.get('size', 0)
-                })
+                if asset.get('name', '').endswith('.py'):
+                    assets.append({
+                        'name': asset.get('name'),
+                        'download_url': asset.get('browser_download_url'),
+                        'size': asset.get('size', 0)
+                    })
+
+            # Se non ci sono assets .py allegati, genera URL raw dal repository
+            if not assets:
+                raw_base_url = f'https://raw.githubusercontent.com/{GITHUB_REPO}/{tag_name}'
+                assets = [
+                    {
+                        'name': 'replay_http_server.py',
+                        'download_url': f'{raw_base_url}/replay_http_server.py',
+                        'size': 0
+                    },
+                    {
+                        'name': 'obs_replay_manager_browser.py',
+                        'download_url': f'{raw_base_url}/obs_replay_manager_browser.py',
+                        'size': 0
+                    }
+                ]
 
             is_update_available = latest_version != VERSION
 
@@ -191,8 +209,24 @@ def check_for_updates():
                     tags = json.loads(response.read().decode('utf-8'))
 
                 if tags and len(tags) > 0:
-                    latest_tag = tags[0].get('name', '').lstrip('v')
+                    latest_tag_name = tags[0].get('name', '')
+                    latest_tag = latest_tag_name.lstrip('v')
                     is_update_available = latest_tag != VERSION
+
+                    # Genera URL per scaricare direttamente dal repository
+                    raw_base_url = f'https://raw.githubusercontent.com/{GITHUB_REPO}/{latest_tag_name}'
+                    assets = [
+                        {
+                            'name': 'replay_http_server.py',
+                            'download_url': f'{raw_base_url}/replay_http_server.py',
+                            'size': 0
+                        },
+                        {
+                            'name': 'obs_replay_manager_browser.py',
+                            'download_url': f'{raw_base_url}/obs_replay_manager_browser.py',
+                            'size': 0
+                        }
+                    ]
 
                     return {
                         'success': True,
@@ -200,9 +234,9 @@ def check_for_updates():
                         'latest_version': latest_tag,
                         'update_available': is_update_available,
                         'release_notes': 'Nessuna nota di rilascio disponibile (solo tag)',
-                        'release_url': f'https://github.com/{GITHUB_REPO}/releases/tag/v{latest_tag}',
+                        'release_url': f'https://github.com/{GITHUB_REPO}/releases/tag/{latest_tag_name}',
                         'published_at': '',
-                        'assets': []
+                        'assets': assets
                     }
                 else:
                     return {
@@ -4812,11 +4846,21 @@ async function checkForUpdates() {
         assetsContainer.innerHTML = '';
 
         if (data.assets && data.assets.length > 0) {
+            // Pulsante per installare tutti i file
+            if (data.assets.length > 1) {
+                const btnAll = document.createElement('button');
+                btnAll.className = 'header-btn primary';
+                btnAll.innerHTML = `<span>⬇️</span><span>Installa tutto</span>`;
+                btnAll.onclick = () => installAllUpdates(data.assets);
+                assetsContainer.appendChild(btnAll);
+            }
+
+            // Pulsanti singoli per ogni file
             data.assets.forEach(asset => {
                 if (asset.name.endsWith('.py')) {
                     const btn = document.createElement('button');
                     btn.className = 'header-btn';
-                    btn.innerHTML = `<span>📥</span><span>Installa ${asset.name}</span>`;
+                    btn.innerHTML = `<span>📥</span><span>${asset.name}</span>`;
                     btn.onclick = () => installUpdate(asset.download_url, asset.name);
                     assetsContainer.appendChild(btn);
                 }
@@ -4846,6 +4890,40 @@ async function installUpdate(url, name) {
         alert(`${name} aggiornato con successo!\n\nRiavvia OBS Studio per applicare le modifiche.`);
     } else {
         showNotification(`Errore: ${result?.error || 'Sconosciuto'}`, 'error');
+    }
+}
+
+async function installAllUpdates(assets) {
+    if (!confirm(`Vuoi installare tutti gli aggiornamenti (${assets.length} file)?\n\nOBS Studio dovrà essere riavviato dopo l'installazione.`)) {
+        return;
+    }
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const asset of assets) {
+        if (asset.name.endsWith('.py')) {
+            showNotification(`Scaricamento ${asset.name}...`, 'info');
+            const result = await apiCall('/api/install-update', 'POST', {
+                url: asset.download_url,
+                name: asset.name
+            });
+
+            if (result && result.success) {
+                successCount++;
+            } else {
+                errorCount++;
+                showNotification(`Errore: ${asset.name} - ${result?.error || 'Sconosciuto'}`, 'error');
+            }
+        }
+    }
+
+    if (errorCount === 0) {
+        showNotification(`Tutti i file (${successCount}) aggiornati con successo!`, 'success');
+        alert(`Aggiornamento completato!\n\n${successCount} file aggiornati.\n\nRiavvia OBS Studio per applicare le modifiche.`);
+    } else {
+        showNotification(`Aggiornamento parziale: ${successCount} OK, ${errorCount} errori`, 'warning');
+        alert(`Aggiornamento parziale.\n\n${successCount} file aggiornati, ${errorCount} errori.\n\nRiavvia OBS Studio per applicare le modifiche.`);
     }
 }
 
