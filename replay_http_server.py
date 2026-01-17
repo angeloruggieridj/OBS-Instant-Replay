@@ -1585,71 +1585,120 @@ body {
     50% { opacity: 0.6; }
 }
 
-/* Context Menu */
+/* Context Menu - Modern Style */
 .context-menu {
     position: fixed;
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 5px 0;
-    box-shadow: 0 4px 12px var(--shadow);
+    border-radius: 12px;
+    padding: 6px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.2);
     z-index: 10000;
-    min-width: 200px;
-    display: none;
+    min-width: 220px;
+    max-width: 280px;
+    backdrop-filter: blur(12px);
+    animation: contextMenuIn 0.15s ease-out;
+    overflow: hidden;
 }
 
-.context-menu.active {
-    display: block;
+@keyframes contextMenuIn {
+    from { opacity: 0; transform: scale(0.95) translateY(-4px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.context-menu-header {
+    padding: 8px 12px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 4px;
 }
 
 .context-menu-item {
-    padding: 10px 15px;
+    padding: 10px 14px;
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: all 0.15s ease;
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 14px;
+    gap: 12px;
+    font-size: 13px;
     color: var(--text-primary);
+    border-radius: 8px;
+    margin: 2px 0;
 }
 
 .context-menu-item:hover {
-    background: var(--bg-hover);
+    background: var(--accent-primary);
+    color: #fff;
+    transform: translateX(2px);
+}
+
+.context-menu-item:hover .menu-icon {
+    transform: scale(1.1);
+}
+
+.context-menu-item .menu-icon {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+    transition: transform 0.15s ease;
+}
+
+.context-menu-item.active {
+    background: rgba(var(--accent-primary-rgb, 52, 152, 219), 0.15);
+    color: var(--accent-primary);
 }
 
 .context-menu-item.danger {
     color: var(--accent-danger);
 }
 
+.context-menu-item.danger:hover {
+    background: var(--accent-danger);
+    color: #fff;
+}
+
 .context-menu-separator {
     height: 1px;
     background: var(--border-color);
-    margin: 5px 0;
+    margin: 6px 4px;
 }
 
-.context-menu-submenu {
-    position: relative;
-}
-
-.context-menu-submenu .submenu-arrow {
-    margin-left: auto;
-}
-
-.context-submenu {
-    position: absolute;
-    left: 100%;
-    top: 0;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
+.context-menu-category {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    cursor: pointer;
     border-radius: 8px;
-    padding: 5px 0;
-    box-shadow: 0 4px 12px var(--shadow);
-    min-width: 180px;
-    display: none;
+    transition: all 0.15s ease;
+    font-size: 13px;
+    color: var(--text-primary);
 }
 
-.context-menu-submenu:hover .context-submenu {
-    display: block;
+.context-menu-category:hover {
+    background: var(--bg-hover);
+}
+
+.context-menu-category.selected {
+    background: rgba(var(--accent-primary-rgb, 52, 152, 219), 0.1);
+}
+
+.context-menu-category .category-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.context-menu-category .category-check {
+    margin-left: auto;
+    color: var(--accent-primary);
+    font-weight: bold;
 }
 
 .video-info {
@@ -3443,42 +3492,80 @@ function showContextMenu(event, index) {
     const existing = document.getElementById('context-menu');
     if (existing) existing.remove();
 
-    // Create new menu element
+    // Create new menu element with modern styling
     const menu = document.createElement('div');
     menu.id = 'context-menu';
-    menu.style.cssText = `position:fixed;left:${event.clientX}px;top:${event.clientY}px;background:#2a2a2a;border:1px solid #444;border-radius:4px;padding:4px 0;z-index:2000;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.5);`;
+    menu.className = 'context-menu';
 
     const isFav = replay.favorite;
+    const hasCategory = replay.category && categories[replay.category];
 
     let html = '';
-    // Favorite option at top
-    if (isFav) {
-        html += `<div style="padding:8px 12px;cursor:pointer;font-size:0.75rem;color:#f39c12;display:flex;align-items:center;gap:8px;border-bottom:1px solid #444;" onmouseover="this.style.background='#333'" onmouseout="this.style.background=''" onclick="toggleFavorite(${index}); hideContextMenu();"><span style="font-size:1rem;">★</span>Rimuovi da preferiti</div>`;
-    } else {
-        html += `<div style="padding:8px 12px;cursor:pointer;font-size:0.75rem;color:#ccc;display:flex;align-items:center;gap:8px;border-bottom:1px solid #444;" onmouseover="this.style.background='#333'" onmouseout="this.style.background=''" onclick="toggleFavorite(${index}); hideContextMenu();"><span style="font-size:1rem;">⭐</span>Aggiungi a preferiti</div>`;
-    }
 
-    // Category section
-    html += '<div style="padding:4px 10px;color:#888;font-size:0.65rem;text-transform:uppercase;margin-top:4px;">Categoria</div>';
-    html += `<div style="padding:6px 10px;cursor:pointer;font-size:0.75rem;color:#ccc;display:flex;align-items:center;gap:6px;" onmouseover="this.style.background='#333'" onmouseout="this.style.background=''" onclick="assignCategory(${index}, null); hideContextMenu();"><span style="width:10px;height:10px;background:#555;border-radius:2px;"></span>Nessuna</div>`;
+    // Favorite action
+    html += `<div class="context-menu-item ${isFav ? 'active' : ''}" onclick="toggleFavorite(${index}); hideContextMenu();">`;
+    html += `<span class="menu-icon">${isFav ? '★' : '☆'}</span>`;
+    html += `<span>${isFav ? 'Rimuovi da preferiti' : 'Aggiungi a preferiti'}</span>`;
+    html += `</div>`;
 
+    // Add to queue
+    html += `<div class="context-menu-item" onclick="addToQueue(${index}); hideContextMenu();">`;
+    html += `<span class="menu-icon">📋</span>`;
+    html += `<span>Aggiungi a playlist</span>`;
+    html += `</div>`;
+
+    html += `<div class="context-menu-separator"></div>`;
+
+    // Category header
+    html += `<div class="context-menu-header">Categoria</div>`;
+
+    // No category option
+    const noCategory = !replay.category;
+    html += `<div class="context-menu-category ${noCategory ? 'selected' : ''}" onclick="assignCategory(${index}, null); hideContextMenu();">`;
+    html += `<span class="category-dot" style="background: #555;"></span>`;
+    html += `<span>Nessuna</span>`;
+    if (noCategory) html += `<span class="category-check">✓</span>`;
+    html += `</div>`;
+
+    // Category options
     Object.entries(categories).forEach(([name, data]) => {
         const isActive = replay.category === name;
-        const color = data.color || data;  // Supporta sia {color, count} che solo colore
-        html += `<div style="padding:6px 10px;cursor:pointer;font-size:0.75rem;color:#ccc;display:flex;align-items:center;gap:6px;" onmouseover="this.style.background='#333'" onmouseout="this.style.background=''" onclick="assignCategory(${index}, '${name.replace(/'/g, "\\'")}'); hideContextMenu();"><span style="width:10px;height:10px;background:${color};border-radius:2px;"></span>${isActive ? '✓ ' : ''}${name}</div>`;
+        const color = data.color || data;
+        html += `<div class="context-menu-category ${isActive ? 'selected' : ''}" onclick="assignCategory(${index}, '${name.replace(/'/g, "\\'")}'); hideContextMenu();">`;
+        html += `<span class="category-dot" style="background: ${color};"></span>`;
+        html += `<span>${name}</span>`;
+        if (isActive) html += `<span class="category-check">✓</span>`;
+        html += `</div>`;
     });
 
     if (Object.keys(categories).length === 0) {
-        html += '<div style="padding:6px 10px;color:#666;font-size:0.7rem;">Nessuna categoria</div>';
+        html += `<div style="padding: 8px 14px; color: var(--text-secondary); font-size: 12px; font-style: italic;">Nessuna categoria creata</div>`;
     }
 
     menu.innerHTML = html;
     document.body.appendChild(menu);
 
-    // Adjust position if menu goes off screen
+    // Smart positioning - calculate best position
     const rect = menu.getBoundingClientRect();
-    if (rect.right > window.innerWidth) menu.style.left = (window.innerWidth - rect.width - 10) + 'px';
-    if (rect.bottom > window.innerHeight) menu.style.top = (window.innerHeight - rect.height - 10) + 'px';
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const margin = 8;
+
+    let posX = event.clientX;
+    let posY = event.clientY;
+
+    // Horizontal positioning - prefer right, flip to left if needed
+    if (posX + rect.width + margin > viewportWidth) {
+        posX = Math.max(margin, posX - rect.width);
+    }
+
+    // Vertical positioning - prefer below, flip above if needed
+    if (posY + rect.height + margin > viewportHeight) {
+        posY = Math.max(margin, viewportHeight - rect.height - margin);
+    }
+
+    menu.style.left = posX + 'px';
+    menu.style.top = posY + 'px';
 
     // Close on click outside
     setTimeout(() => {
@@ -4136,16 +4223,16 @@ async function checkForUpdates() {
                 if (asset.name.endsWith('.py')) {
                     const btn = document.createElement('button');
                     btn.className = 'header-btn';
-                    btn.innerHTML = \`<span>📥</span><span>Installa \${asset.name}</span>\`;
+                    btn.innerHTML = `<span>📥</span><span>Installa ${asset.name}</span>`;
                     btn.onclick = () => installUpdate(asset.download_url, asset.name);
                     assetsContainer.appendChild(btn);
                 }
             });
         }
 
-        showNotification(\`Nuova versione disponibile: \${data.latest_version}\`, 'success');
+        showNotification(`Nuova versione disponibile: ${data.latest_version}`, 'success');
     } else {
-        status.textContent = \`Hai l'ultima versione (\${data.current_version})\`;
+        status.textContent = `Hai l'ultima versione (${data.current_version})`;
         status.style.color = 'var(--text-secondary)';
         updateInfo.style.display = 'none';
         showNotification('Sei già aggiornato!', 'success');
@@ -4153,19 +4240,19 @@ async function checkForUpdates() {
 }
 
 async function installUpdate(url, name) {
-    if (!confirm(\`Vuoi installare l'aggiornamento per \${name}?\\n\\nOBS Studio dovrà essere riavviato dopo l'installazione.\`)) {
+    if (!confirm(`Vuoi installare l'aggiornamento per ${name}?\n\nOBS Studio dovrà essere riavviato dopo l'installazione.`)) {
         return;
     }
 
-    showNotification(\`Scaricamento \${name}...\`, 'info');
+    showNotification(`Scaricamento ${name}...`, 'info');
 
     const result = await apiCall('/api/install-update', 'POST', { url, name });
 
     if (result && result.success) {
         showNotification(result.message, 'success');
-        alert(\`\${name} aggiornato con successo!\\n\\nRiavvia OBS Studio per applicare le modifiche.\`);
+        alert(`${name} aggiornato con successo!\n\nRiavvia OBS Studio per applicare le modifiche.`);
     } else {
-        showNotification(\`Errore: \${result?.error || 'Sconosciuto'}\`, 'error');
+        showNotification(`Errore: ${result?.error || 'Sconosciuto'}`, 'error');
     }
 }
 

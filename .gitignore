@@ -1,5 +1,5 @@
-# Escludi viewer.html (da altro progetto)
-viewer.html
+# File HTML esterni
+*.html
 
 # File di dati persistenti
 replay_data.json
