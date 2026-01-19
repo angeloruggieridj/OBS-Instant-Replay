@@ -57,7 +57,6 @@ current_theme = "default"  # Tema corrente
 card_zoom = 200  # Dimensione card (120-320px)
 current_playing_video = None  # Path del video attualmente in riproduzione
 current_ready_video = None  # Path del video caricato ma non avviato (READY)
-auto_play_on_load = True  # Se True avvia automaticamente, se False carica solo (READY)
 update_channel = "stable"  # Canale aggiornamenti: "stable" o "beta"
 last_scan_time = None  # Timestamp dell'ultimo scan
 video_durations_cache = {}  # Cache delle durate video {path: seconds}
@@ -76,7 +75,7 @@ def init_data_file():
 def load_persistent_data():
     """Carica dati persistenti da JSON"""
     global favorites, playlist_queue, categories, video_categories, hidden_videos
-    global current_theme, card_zoom, current_speed, highlights_files, auto_play_on_load
+    global current_theme, card_zoom, current_speed, highlights_files
     global replay_folder, media_source_name, target_scene_name, auto_switch_scene
     global filter_mask, refresh_interval_seconds, update_channel
 
@@ -96,7 +95,6 @@ def load_persistent_data():
         card_zoom = data.get('card_zoom', 200)
         current_speed = data.get('current_speed', 1.0)
         highlights_files = data.get('highlights_files', [])
-        auto_play_on_load = data.get('auto_play_on_load', True)
         update_channel = data.get('update_channel', 'stable')
 
         # Impostazioni OBS
@@ -127,7 +125,6 @@ def save_persistent_data():
             'card_zoom': card_zoom,
             'current_speed': current_speed,
             'highlights_files': highlights_files,
-            'auto_play_on_load': auto_play_on_load,
             'update_channel': update_channel,
             # Impostazioni OBS
             'replay_folder': replay_folder,
@@ -701,7 +698,6 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                 'current_speed': current_speed,
                 'current_theme': current_theme,
                 'card_zoom': card_zoom,
-                'auto_play_on_load': auto_play_on_load,
                 'update_channel': update_channel
             })
 
@@ -784,7 +780,7 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
     
     def do_POST(self):
         global current_playing_video, current_ready_video, current_speed, current_theme, card_zoom
-        global video_categories, favorites, hidden_videos, playlist_queue, categories, auto_play_on_load
+        global video_categories, favorites, hidden_videos, playlist_queue, categories
         global replay_folder, media_source_name, target_scene_name, auto_switch_scene, filter_mask, update_channel
 
         try:
@@ -808,25 +804,18 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                 if 0 <= index < len(replay_files):
                     video_path = replay_files[index].path
 
-                    # Determina se avviare o solo caricare
-                    if auto_play_on_load:
-                        # Modalità LIVE: avvia riproduzione
-                        current_playing_video = video_path
-                        current_ready_video = None
-                    else:
-                        # Modalità READY: carica senza avviare
-                        current_ready_video = video_path
-                        current_playing_video = None
+                    # Video caricato in modalità READY (pronto per avvio manuale)
+                    current_ready_video = video_path
+                    current_playing_video = None
 
                     action_queue.put({
                         'action': 'load_replay',
                         'index': index,
                         'path': video_path,
-                        'auto_play': auto_play_on_load,
                         'speed': current_speed
                     })
 
-                    self.send_json({'success': True, 'auto_play': auto_play_on_load})
+                    self.send_json({'success': True})
                 else:
                     self.send_json({'success': False})
 
@@ -928,22 +917,17 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                         next_item = playlist_queue[0]
                         next_path = next_item['path']
 
-                        # Rispetta l'impostazione auto_play_on_load
-                        if auto_play_on_load:
-                            current_playing_video = next_path
-                            current_ready_video = None
-                        else:
-                            current_ready_video = next_path
-                            current_playing_video = None
+                        # Video caricato in modalità READY (pronto per avvio manuale)
+                        current_ready_video = next_path
+                        current_playing_video = None
 
                         action_queue.put({
                             'action': 'load_replay',
                             'path': next_path,
-                            'auto_play': auto_play_on_load,
                             'speed': current_speed
                         })
 
-                        self.send_json({'success': True, 'has_next': len(playlist_queue) > 1, 'auto_play': auto_play_on_load})
+                        self.send_json({'success': True, 'has_next': len(playlist_queue) > 1})
                     else:
                         current_playing_video = None
                         current_ready_video = None
@@ -1060,12 +1044,6 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                 else:
                     self.send_json({'success': False, 'error': 'Canale non valido'})
 
-            elif path == '/api/auto-play':
-                auto_play = data.get('auto_play', True)
-                auto_play_on_load = bool(auto_play)
-                save_persistent_data()
-                self.send_json({'success': True, 'auto_play': auto_play_on_load})
-
             elif path == '/api/zoom':
                 zoom = data.get('zoom', 200)
                 card_zoom = max(120, min(320, zoom))
@@ -1101,12 +1079,13 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
             elif path == '/api/highlights/load':
                 highlight_path = data.get('path', '')
                 if os.path.exists(highlight_path):
-                    current_playing_video = highlight_path
+                    # Video caricato in modalità READY
+                    current_ready_video = highlight_path
+                    current_playing_video = None
                     action_queue.put({
                         'action': 'load_replay',
                         'index': -1,
                         'path': highlight_path,
-                        'auto_play': auto_play_on_load,
                         'speed': current_speed
                     })
                     self.send_json({'success': True})
@@ -1171,7 +1150,6 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                         'target_scene_name': target_scene_name,
                         'auto_switch_scene': auto_switch_scene,
                         'filter_mask': filter_mask,
-                        'auto_play_on_load': auto_play_on_load,
                         'current_speed': current_speed,
                         'current_theme': current_theme,
                         'card_zoom': card_zoom,
@@ -1203,8 +1181,6 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                         auto_switch_scene = settings['auto_switch_scene']
                     if 'filter_mask' in settings:
                         filter_mask = settings['filter_mask']
-                    if 'auto_play_on_load' in settings:
-                        auto_play_on_load = settings['auto_play_on_load']
                     if 'current_speed' in settings:
                         current_speed = settings['current_speed']
                     if 'current_theme' in settings:
@@ -3284,20 +3260,6 @@ body {
                     </div>
                 </div>
 
-                <div class="settings-section">
-                    <div class="settings-section-title">Comportamento Riproduzione</div>
-                    <div class="settings-item">
-                        <div>
-                            <div class="settings-item-label">Avvio automatico</div>
-                            <div class="settings-item-description">Se attivo, i video si avviano automaticamente (badge LIVE). Se disattivo, vengono solo caricati (badge READY) e puoi avviarli manualmente (es. con Stream Deck)</div>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="auto-play-toggle" checked onchange="toggleAutoPlay()">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                </div>
-
             </div>
 
             <!-- Categories Panel -->
@@ -3653,16 +3615,12 @@ async function loadConfig() {
         currentSpeed = data.current_speed || 1.0;
         currentTheme = data.current_theme || 'default';
         cardZoom = data.card_zoom || 200;
-        const autoPlay = data.auto_play_on_load !== undefined ? data.auto_play_on_load : true;
 
         // Apply loaded config
         document.body.setAttribute('data-theme', currentTheme);
         document.getElementById('zoom-slider').value = cardZoom;
         setZoom(cardZoom);
         updateSpeedDisplay();
-
-        // Update auto-play toggle
-        document.getElementById('auto-play-toggle').checked = autoPlay;
 
         // Update OBS settings in Advanced panel
         if (data.replay_folder) {
@@ -4203,8 +4161,7 @@ async function addToQueue(index) {
 async function loadVideo(index) {
     const result = await apiCall('/api/load', 'POST', { index });
     if (result && result.success) {
-        const mode = result.auto_play ? 'LIVE (avvio automatico)' : 'READY (pronto per avvio)';
-        showNotification(`Video caricato: ${mode}`, 'success');
+        showNotification('Video caricato (pronto per avvio)', 'success');
         // Forza refresh immediato per mostrare badge
         await loadReplays();
     }
@@ -5087,15 +5044,6 @@ async function deleteCategory(name) {
             await loadReplays();
             showNotification('Categoria eliminata', 'success');
         }
-    }
-}
-
-async function toggleAutoPlay() {
-    const autoPlay = document.getElementById('auto-play-toggle').checked;
-    const result = await apiCall('/api/auto-play', 'POST', { auto_play: autoPlay });
-    if (result && result.success) {
-        const mode = autoPlay ? 'LIVE (avvio automatico)' : 'READY (caricamento solo)';
-        showNotification(`Modalità impostata: ${mode}`, 'success');
     }
 }
 

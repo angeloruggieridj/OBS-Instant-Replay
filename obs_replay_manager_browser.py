@@ -27,13 +27,15 @@ except ImportError as e:
 server_port = 8765
 
 
-def load_replay_to_source(file_path, auto_play=True, speed=None):
-    """Carica un replay nella fonte multimediale
+def load_replay_to_source(file_path, speed=None):
+    """Carica un replay nella fonte multimediale SENZA avviare la riproduzione.
 
     Args:
         file_path: Percorso del file video
-        auto_play: Se True avvia automaticamente, se False carica solo
         speed: Velocità di riproduzione (0.1-2.0), None usa quella corrente dal server
+
+    Il video viene caricato ma NON parte automaticamente.
+    L'utente deve avviare manualmente la riproduzione (Stream Deck, hotkey, controlli OBS).
     """
     if not SERVER_AVAILABLE:
         return False
@@ -49,82 +51,45 @@ def load_replay_to_source(file_path, auto_play=True, speed=None):
         print("⚠ Nome fonte o scena non configurati")
         return False
 
-    scenes = obs.obs_frontend_get_scenes()
-    target_scene = None
+    # Trova la sorgente direttamente per nome (più semplice e affidabile)
+    source = obs.obs_get_source_by_name(media_source_name)
 
-    for scene_source in scenes:
-        scene_name = obs.obs_source_get_name(scene_source)
-        if scene_name == target_scene_name:
-            target_scene = obs.obs_scene_from_source(scene_source)
-            break
-
-    obs.source_list_release(scenes)
-
-    if not target_scene:
-        print(f"⚠ Scena '{target_scene_name}' non trovata")
+    if not source:
+        print(f"⚠ Sorgente '{media_source_name}' non trovata")
         return False
 
-    scene_item = obs.obs_scene_find_source(target_scene, media_source_name)
+    # Aggiorna le impostazioni della sorgente
+    settings = obs.obs_data_create()
+    obs.obs_data_set_string(settings, "local_file", file_path)
+    obs.obs_data_set_bool(settings, "is_local_file", True)
 
-    if scene_item:
-        source = obs.obs_sceneitem_get_source(scene_item)
-    else:
-        settings = obs.obs_data_create()
-        source = obs.obs_source_create("ffmpeg_source", media_source_name, settings, None)
-        obs.obs_data_release(settings)
+    # Imposta la velocità di riproduzione (speed_percent: 100 = 1x, 50 = 0.5x, 200 = 2x)
+    speed_percent = max(10, min(int(playback_speed * 100), 200))
+    obs.obs_data_set_int(settings, "speed_percent", speed_percent)
 
-        if source:
-            obs.obs_scene_add(target_scene, source)
+    # Aggiorna la sorgente (questo può causare auto-play se la sorgente è attiva)
+    obs.obs_source_update(source, settings)
+    obs.obs_data_release(settings)
 
-    if source:
-        # READY mode: ferma PRIMA di aggiornare per evitare autoplay
-        if not auto_play:
-            obs.obs_source_media_play_pause(source, True)  # Pausa immediata
-            obs.obs_source_media_stop(source)
+    # FERMA IMMEDIATAMENTE la riproduzione dopo l'update
+    # Questo garantisce che il video sia caricato ma non in play
+    obs.obs_source_media_stop(source)
 
-        settings = obs.obs_data_create()
-        obs.obs_data_set_string(settings, "local_file", file_path)
-        obs.obs_data_set_bool(settings, "is_local_file", True)
-        obs.obs_data_set_bool(settings, "looping", False)
-        obs.obs_data_set_bool(settings, "hw_decode", True)
+    # Rilascia il riferimento alla sorgente
+    obs.obs_source_release(source)
 
-        # Imposta la velocità di riproduzione (speed_percent: 100 = 1x, 50 = 0.5x, 200 = 2x)
-        speed_percent = int(playback_speed * 100)
-        obs.obs_data_set_int(settings, "speed_percent", speed_percent)
+    # Cambia scena se richiesto
+    if auto_switch_scene:
+        scenes = obs.obs_frontend_get_scenes()
+        for scene_source in scenes:
+            if obs.obs_source_get_name(scene_source) == target_scene_name:
+                obs.obs_frontend_set_current_scene(scene_source)
+                break
+        obs.source_list_release(scenes)
 
-        # READY mode: disabilita restart_on_activate per evitare avvio automatico
-        # Questo è fondamentale in Studio Mode dove la transizione attiverebbe il video
-        if auto_play:
-            obs.obs_data_set_bool(settings, "restart_on_activate", True)
-        else:
-            obs.obs_data_set_bool(settings, "restart_on_activate", False)
-            obs.obs_data_set_bool(settings, "close_when_inactive", False)
-
-        obs.obs_source_update(source, settings)
-        obs.obs_data_release(settings)
-
-        # Gestione riproduzione
-        if auto_play:
-            obs.obs_source_media_restart(source)
-        else:
-            # READY mode: FERMA IMMEDIATAMENTE dopo l'aggiornamento
-            obs.obs_source_media_play_pause(source, True)  # Pausa immediata
-            obs.obs_source_media_stop(source)              # Stop completo
-            obs.obs_source_media_set_time(source, 0)       # Posiziona all'inizio
-
-        if auto_switch_scene:
-            scenes = obs.obs_frontend_get_scenes()
-            for scene_source in scenes:
-                if obs.obs_source_get_name(scene_source) == target_scene_name:
-                    obs.obs_frontend_set_current_scene(scene_source)
-                    break
-            obs.source_list_release(scenes)
-
-        speed_str = f" @ {playback_speed}x" if playback_speed != 1.0 else ""
-        print(f"✓ Replay caricato: {os.path.basename(file_path)}{speed_str}")
-        return True
-
-    return False
+    speed_str = f" @ {playback_speed}x" if playback_speed != 1.0 else ""
+    print(f"✓ Replay caricato: {os.path.basename(file_path)}{speed_str}")
+    return True
 
 
 def set_media_speed(speed):
@@ -394,23 +359,18 @@ def check_actions_timer():
             action_type = action.get('action')
 
             if action_type == 'load_replay':
-                # Ottieni auto_play e speed dalla action
-                auto_play = action.get('auto_play', True)
+                # Ottieni speed dalla action
                 speed = action.get('speed', None)
 
                 # Verifica se c'è un path diretto (per highlights) o un index
                 if 'path' in action:
                     # Carica da path diretto
-                    load_replay_to_source(action['path'], auto_play, speed)
-                    status = "LIVE" if auto_play else "READY"
-                    print(f"✓ Highlights caricato ({status}): {os.path.basename(action['path'])}")
+                    load_replay_to_source(action['path'], speed)
                 else:
                     # Carica da index
                     index = action.get('index', 0)
                     if 0 <= index < len(server.replay_files):
-                        load_replay_to_source(server.replay_files[index].path, auto_play, speed)
-                        status = "LIVE" if auto_play else "READY"
-                        print(f"✓ Replay caricato ({status}): {server.replay_files[index].name}")
+                        load_replay_to_source(server.replay_files[index].path, speed)
 
             elif action_type == 'set_speed':
                 # Imposta la velocità della media source
@@ -427,17 +387,15 @@ def check_actions_timer():
 
 
 def load_latest_hotkey(pressed):
-    """Hotkey per caricare ultimo replay"""
+    """Hotkey per caricare ultimo replay (senza avviare riproduzione)"""
     if pressed and SERVER_AVAILABLE and server.replay_files:
-        auto_play = getattr(server, 'auto_play_on_load', True)
-        load_replay_to_source(server.replay_files[0].path, auto_play)
+        load_replay_to_source(server.replay_files[0].path)
 
 
 def load_second_hotkey(pressed):
-    """Hotkey per caricare penultimo replay"""
+    """Hotkey per caricare penultimo replay (senza avviare riproduzione)"""
     if pressed and SERVER_AVAILABLE and len(server.replay_files) > 1:
-        auto_play = getattr(server, 'auto_play_on_load', True)
-        load_replay_to_source(server.replay_files[1].path, auto_play)
+        load_replay_to_source(server.replay_files[1].path)
 
 
 def play_pause_hotkey(pressed):
