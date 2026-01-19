@@ -79,6 +79,7 @@ def load_replay_to_source(file_path, auto_play=True, speed=None):
     if source:
         # READY mode: ferma PRIMA di aggiornare per evitare autoplay
         if not auto_play:
+            obs.obs_source_media_play_pause(source, True)  # Pausa immediata
             obs.obs_source_media_stop(source)
 
         settings = obs.obs_data_create()
@@ -106,10 +107,10 @@ def load_replay_to_source(file_path, auto_play=True, speed=None):
         if auto_play:
             obs.obs_source_media_restart(source)
         else:
-            # READY mode: ferma DOPO l'aggiornamento (obs_source_update può far partire il video)
-            obs.obs_source_media_stop(source)
-            # Posiziona all'inizio senza avviare
-            obs.obs_source_media_set_time(source, 0)
+            # READY mode: FERMA IMMEDIATAMENTE dopo l'aggiornamento
+            obs.obs_source_media_play_pause(source, True)  # Pausa immediata
+            obs.obs_source_media_stop(source)              # Stop completo
+            obs.obs_source_media_set_time(source, 0)       # Posiziona all'inizio
 
         if auto_switch_scene:
             scenes = obs.obs_frontend_get_scenes()
