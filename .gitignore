@@ -5,6 +5,9 @@
 replay_data.json
 replay_manager_data.json
 
+# Documentazione interna
+ROADMAP.md
+
 # Claude Code directory
 .claude/
 
