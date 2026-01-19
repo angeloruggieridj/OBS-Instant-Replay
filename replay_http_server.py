@@ -1038,13 +1038,10 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                 self.send_json({'success': True})
 
             elif path == '/api/speed':
+                # Imposta la velocità per i prossimi video (non modifica il video corrente)
                 speed = data.get('speed', 1.0)
                 current_speed = max(0.1, min(2.0, speed))
                 save_persistent_data()
-                action_queue.put({
-                    'action': 'set_speed',
-                    'speed': current_speed
-                })
                 self.send_json({'success': True, 'speed': current_speed})
 
             elif path == '/api/theme':
