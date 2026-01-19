@@ -785,6 +785,7 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         global current_playing_video, current_ready_video, current_speed, current_theme, card_zoom
         global video_categories, favorites, hidden_videos, playlist_queue, categories, auto_play_on_load
+        global replay_folder, media_source_name, target_scene_name, auto_switch_scene, filter_mask, update_channel
 
         try:
             parsed_path = urllib.parse.urlparse(self.path)
@@ -1192,11 +1193,6 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                 if not config_data:
                     self.send_json({'success': False, 'error': 'Configurazione vuota'})
                 else:
-                    global replay_folder, media_source_name, target_scene_name
-                    global auto_switch_scene, filter_mask, auto_play_on_load
-                    global current_speed, current_theme, card_zoom, update_channel
-                    global categories, video_categories, hidden_videos, favorites
-
                     settings = config_data.get('settings', {})
 
                     # Importa impostazioni base (opzionali)
