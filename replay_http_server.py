@@ -2505,6 +2505,7 @@ body {
     cursor: pointer;
     text-align: center;
     transition: all 0.2s ease;
+    color: var(--text-primary);
 }
 
 .theme-option:hover {
@@ -3238,7 +3239,6 @@ body {
         <div class="modal-body">
             <div class="settings-tabs">
                 <button class="settings-tab active" onclick="switchSettingsTab('general')">Generale</button>
-                <button class="settings-tab" onclick="switchSettingsTab('obs')">OBS</button>
                 <button class="settings-tab" onclick="switchSettingsTab('categories')">Categorie</button>
                 <button class="settings-tab" onclick="switchSettingsTab('themes')">Temi</button>
                 <button class="settings-tab" onclick="switchSettingsTab('info')">About</button>
@@ -3247,87 +3247,16 @@ body {
             <!-- General Panel -->
             <div class="settings-panel active" id="panel-general">
                 <div class="settings-section">
-                    <div class="settings-section-title">Cartella Replay</div>
-                    <div class="settings-item">
-                        <div>
-                            <div class="settings-item-label">Percorso corrente</div>
-                            <div class="settings-item-description" id="current-folder" style="word-break: break-all;">Non configurata</div>
-                        </div>
-                        <div style="display: flex; gap: 6px;">
-                            <button class="header-btn" onclick="switchSettingsTab('obs')">Configura</button>
-                            <button class="header-btn" onclick="openFolder()">Apri</button>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- Categories Panel -->
-            <div class="settings-panel" id="panel-categories">
-                <div class="settings-section">
-                    <div class="settings-section-title">Nuova Categoria</div>
-                    <div class="add-category-form" style="margin-bottom: 12px;">
-                        <input type="text" class="add-category-input" id="new-category-name" placeholder="Nome categoria...">
-                        <button class="add-category-btn" onclick="addCategory()">Aggiungi</button>
-                    </div>
-                    <div class="color-presets" id="color-presets">
-                        <div class="color-preset selected" data-color="#e74c3c" style="background:#e74c3c;" onclick="selectPresetColor(this)"></div>
-                        <div class="color-preset" data-color="#e67e22" style="background:#e67e22;" onclick="selectPresetColor(this)"></div>
-                        <div class="color-preset" data-color="#f1c40f" style="background:#f1c40f;" onclick="selectPresetColor(this)"></div>
-                        <div class="color-preset" data-color="#2ecc71" style="background:#2ecc71;" onclick="selectPresetColor(this)"></div>
-                        <div class="color-preset" data-color="#1abc9c" style="background:#1abc9c;" onclick="selectPresetColor(this)"></div>
-                        <div class="color-preset" data-color="#3498db" style="background:#3498db;" onclick="selectPresetColor(this)"></div>
-                        <div class="color-preset" data-color="#9b59b6" style="background:#9b59b6;" onclick="selectPresetColor(this)"></div>
-                        <div class="color-preset" data-color="#e91e63" style="background:#e91e63;" onclick="selectPresetColor(this)"></div>
-                        <div class="color-preset" data-color="#607d8b" style="background:#607d8b;" onclick="selectPresetColor(this)"></div>
-                    </div>
-                </div>
-
-                <div class="settings-section">
-                    <div class="settings-section-title">Le Tue Categorie</div>
-                    <div class="category-list" id="category-list">
-                        <!-- Categories will be inserted here -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Themes Panel -->
-            <div class="settings-panel" id="panel-themes">
-                <div class="settings-section">
-                    <div class="settings-section-title">Seleziona Tema</div>
-                    <div class="theme-selector">
-                        <div class="theme-option active" data-theme="default" onclick="setTheme('default')">
-                            <div class="theme-preview" style="background: linear-gradient(135deg, #1a1a1a, #4a9eff);"></div>
-                            <div>Dark (Default)</div>
-                        </div>
-                        <div class="theme-option" data-theme="light" onclick="setTheme('light')">
-                            <div class="theme-preview" style="background: linear-gradient(135deg, #f5f5f5, #2196f3);"></div>
-                            <div>Light</div>
-                        </div>
-                        <div class="theme-option" data-theme="blue" onclick="setTheme('blue')">
-                            <div class="theme-preview" style="background: linear-gradient(135deg, #0a1628, #4a9eff);"></div>
-                            <div>Blue (Acri)</div>
-                        </div>
-                        <div class="theme-option" data-theme="green" onclick="setTheme('green')">
-                            <div class="theme-preview" style="background: linear-gradient(135deg, #0d1f0d, #44ff88);"></div>
-                            <div>Green (Rachni)</div>
-                        </div>
-                        <div class="theme-option" data-theme="classic" onclick="setTheme('classic')">
-                            <div class="theme-preview" style="background: linear-gradient(135deg, #2b2b2b, #66aaff);"></div>
-                            <div>Classic</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- OBS Panel -->
-            <div class="settings-panel" id="panel-obs">
-                <div class="settings-section">
                     <div class="settings-section-title">Configurazione OBS</div>
                     <div class="settings-item" style="flex-direction: column; align-items: stretch; gap: 8px;">
-                        <div>
-                            <div class="settings-item-label">Cartella Replay</div>
-                            <div class="settings-item-description">Percorso della cartella contenente i replay</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div class="settings-item-label">Cartella Replay</div>
+                                <div class="settings-item-description">Percorso della cartella contenente i replay</div>
+                            </div>
+                            <button class="header-btn" onclick="openFolder()" title="Apri cartella">
+                                <span>📂</span>
+                            </button>
                         </div>
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <input type="text" class="settings-input" id="replay-folder-path" style="flex: 1;" placeholder="Seleziona cartella...">
@@ -3397,6 +3326,64 @@ body {
                         </button>
                     </div>
                     <input type="file" id="import-config-input" accept=".json" style="display: none;" onchange="handleConfigImport(event)">
+                </div>
+            </div>
+
+            <!-- Categories Panel -->
+            <div class="settings-panel" id="panel-categories">
+                <div class="settings-section">
+                    <div class="settings-section-title">Nuova Categoria</div>
+                    <div class="add-category-form" style="margin-bottom: 12px;">
+                        <input type="text" class="add-category-input" id="new-category-name" placeholder="Nome categoria...">
+                        <button class="add-category-btn" onclick="addCategory()">Aggiungi</button>
+                    </div>
+                    <div class="color-presets" id="color-presets">
+                        <div class="color-preset selected" data-color="#e74c3c" style="background:#e74c3c;" onclick="selectPresetColor(this)"></div>
+                        <div class="color-preset" data-color="#e67e22" style="background:#e67e22;" onclick="selectPresetColor(this)"></div>
+                        <div class="color-preset" data-color="#f1c40f" style="background:#f1c40f;" onclick="selectPresetColor(this)"></div>
+                        <div class="color-preset" data-color="#2ecc71" style="background:#2ecc71;" onclick="selectPresetColor(this)"></div>
+                        <div class="color-preset" data-color="#1abc9c" style="background:#1abc9c;" onclick="selectPresetColor(this)"></div>
+                        <div class="color-preset" data-color="#3498db" style="background:#3498db;" onclick="selectPresetColor(this)"></div>
+                        <div class="color-preset" data-color="#9b59b6" style="background:#9b59b6;" onclick="selectPresetColor(this)"></div>
+                        <div class="color-preset" data-color="#e91e63" style="background:#e91e63;" onclick="selectPresetColor(this)"></div>
+                        <div class="color-preset" data-color="#607d8b" style="background:#607d8b;" onclick="selectPresetColor(this)"></div>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="settings-section-title">Le Tue Categorie</div>
+                    <div class="category-list" id="category-list">
+                        <!-- Categories will be inserted here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Themes Panel -->
+            <div class="settings-panel" id="panel-themes">
+                <div class="settings-section">
+                    <div class="settings-section-title">Seleziona Tema</div>
+                    <div class="theme-selector">
+                        <div class="theme-option active" data-theme="default" onclick="setTheme('default')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #1a1a1a, #4a9eff);"></div>
+                            <div>Dark (Default)</div>
+                        </div>
+                        <div class="theme-option" data-theme="light" onclick="setTheme('light')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #f5f5f5, #2196f3);"></div>
+                            <div>Light</div>
+                        </div>
+                        <div class="theme-option" data-theme="blue" onclick="setTheme('blue')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #0a1628, #4a9eff);"></div>
+                            <div>Blue (Acri)</div>
+                        </div>
+                        <div class="theme-option" data-theme="green" onclick="setTheme('green')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #0d1f0d, #44ff88);"></div>
+                            <div>Green (Rachni)</div>
+                        </div>
+                        <div class="theme-option" data-theme="classic" onclick="setTheme('classic')">
+                            <div class="theme-preview" style="background: linear-gradient(135deg, #2b2b2b, #66aaff);"></div>
+                            <div>Classic</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -3622,10 +3609,9 @@ async function loadConfig() {
         setZoom(cardZoom);
         updateSpeedDisplay();
 
-        // Update OBS settings in Advanced panel
+        // Update OBS settings
         if (data.replay_folder) {
             document.getElementById('replay-folder-path').value = data.replay_folder;
-            document.getElementById('current-folder').textContent = data.replay_folder;
         }
         if (data.media_source_name) {
             document.getElementById('media-source-name').value = data.media_source_name;
@@ -3657,13 +3643,6 @@ async function saveOBSSettings() {
 
     if (result && result.success) {
         showNotification('Impostazioni salvate', 'success');
-
-        // Aggiorna anche il display nel tab Generale
-        const folderPath = settings.replay_folder;
-        if (folderPath) {
-            document.getElementById('current-folder').textContent = folderPath;
-        }
-
         await loadReplays();
     } else {
         showNotification('Errore nel salvataggio', 'error');
@@ -3699,20 +3678,40 @@ async function exportConfig() {
         const result = await apiCall('/api/config/export', 'POST', {});
 
         if (result && result.success && result.config) {
-            // Crea il file JSON da scaricare
             const configJson = JSON.stringify(result.config, null, 2);
+            const defaultFileName = `obs-instant-replay-config-${new Date().toISOString().split('T')[0]}.json`;
+
+            // Prova a usare il File System Access API (permette di scegliere dove salvare)
+            if (window.showSaveFilePicker) {
+                try {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: defaultFileName,
+                        types: [{
+                            description: 'JSON Configuration',
+                            accept: { 'application/json': ['.json'] }
+                        }]
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(configJson);
+                    await writable.close();
+                    showNotification('Configurazione esportata', 'success');
+                    return;
+                } catch (e) {
+                    // L'utente ha annullato o API non supportata, usa fallback
+                    if (e.name === 'AbortError') return;
+                }
+            }
+
+            // Fallback: download diretto
             const blob = new Blob([configJson], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
-
-            // Crea link per download
             const a = document.createElement('a');
             a.href = url;
-            a.download = `obs-instant-replay-config-${new Date().toISOString().split('T')[0]}.json`;
+            a.download = defaultFileName;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-
             showNotification('Configurazione esportata', 'success');
         } else {
             showNotification('Errore esportazione', 'error');
