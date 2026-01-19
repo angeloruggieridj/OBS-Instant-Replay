@@ -1,6 +1,6 @@
 """
 OBS Instant Replay - Server HTTP
-Versione: 1.0-beta3
+Versione: 1.0-beta4
 Repository: https://github.com/angeloruggieridj/OBS-Instant-Replay
 
 Funzionalità:
@@ -29,7 +29,7 @@ import subprocess
 import tempfile
 
 # Versione corrente
-VERSION = "1.0-beta3"
+VERSION = "1.0-beta4"
 GITHUB_REPO = "angeloruggieridj/OBS-Instant-Replay"
 GITHUB_RELEASES_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 GITHUB_ALL_RELEASES_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases"
@@ -821,12 +821,7 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                         'action': 'load_replay',
                         'index': index,
                         'path': video_path,
-                        'auto_play': auto_play_on_load
-                    })
-
-                    # Applica velocità corrente
-                    action_queue.put({
-                        'action': 'set_speed',
+                        'auto_play': auto_play_on_load,
                         'speed': current_speed
                     })
 
@@ -943,12 +938,7 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                         action_queue.put({
                             'action': 'load_replay',
                             'path': next_path,
-                            'auto_play': auto_play_on_load
-                        })
-
-                        # Applica velocità corrente
-                        action_queue.put({
-                            'action': 'set_speed',
+                            'auto_play': auto_play_on_load,
                             'speed': current_speed
                         })
 
@@ -1117,10 +1107,8 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                     action_queue.put({
                         'action': 'load_replay',
                         'index': -1,
-                        'path': highlight_path
-                    })
-                    action_queue.put({
-                        'action': 'set_speed',
+                        'path': highlight_path,
+                        'auto_play': auto_play_on_load,
                         'speed': current_speed
                     })
                     self.send_json({'success': True})
@@ -1173,6 +1161,87 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                     'auto_switch_scene': auto_switch_scene,
                     'filter_mask': filter_mask
                 })
+
+            elif path == '/api/config/export':
+                # Esporta tutte le configurazioni
+                config_data = {
+                    'version': VERSION,
+                    'export_date': datetime.now().isoformat(),
+                    'settings': {
+                        'replay_folder': replay_folder,
+                        'media_source_name': media_source_name,
+                        'target_scene_name': target_scene_name,
+                        'auto_switch_scene': auto_switch_scene,
+                        'filter_mask': filter_mask,
+                        'auto_play_on_load': auto_play_on_load,
+                        'current_speed': current_speed,
+                        'current_theme': current_theme,
+                        'card_zoom': card_zoom,
+                        'update_channel': update_channel
+                    },
+                    'categories': categories,
+                    'video_categories': video_categories,
+                    'hidden_videos': list(hidden_videos),
+                    'favorites': list(favorites)
+                }
+                self.send_json({'success': True, 'config': config_data})
+
+            elif path == '/api/config/import':
+                # Importa configurazioni
+                config_data = data.get('config', {})
+                if not config_data:
+                    self.send_json({'success': False, 'error': 'Configurazione vuota'})
+                else:
+                    global replay_folder, media_source_name, target_scene_name
+                    global auto_switch_scene, filter_mask, auto_play_on_load
+                    global current_speed, current_theme, card_zoom, update_channel
+                    global categories, video_categories, hidden_videos, favorites
+
+                    settings = config_data.get('settings', {})
+
+                    # Importa impostazioni base (opzionali)
+                    if 'replay_folder' in settings and os.path.isdir(settings['replay_folder']):
+                        replay_folder = settings['replay_folder']
+                    if 'media_source_name' in settings:
+                        media_source_name = settings['media_source_name']
+                    if 'target_scene_name' in settings:
+                        target_scene_name = settings['target_scene_name']
+                    if 'auto_switch_scene' in settings:
+                        auto_switch_scene = settings['auto_switch_scene']
+                    if 'filter_mask' in settings:
+                        filter_mask = settings['filter_mask']
+                    if 'auto_play_on_load' in settings:
+                        auto_play_on_load = settings['auto_play_on_load']
+                    if 'current_speed' in settings:
+                        current_speed = settings['current_speed']
+                    if 'current_theme' in settings:
+                        current_theme = settings['current_theme']
+                    if 'card_zoom' in settings:
+                        card_zoom = settings['card_zoom']
+                    if 'update_channel' in settings:
+                        update_channel = settings['update_channel']
+
+                    # Importa categorie
+                    if 'categories' in config_data:
+                        categories = config_data['categories']
+
+                    # Importa assegnazioni categorie video
+                    if 'video_categories' in config_data:
+                        video_categories = config_data['video_categories']
+
+                    # Importa video nascosti
+                    if 'hidden_videos' in config_data:
+                        hidden_videos = set(config_data['hidden_videos'])
+
+                    # Importa preferiti (se i video esistono ancora)
+                    if 'favorites' in config_data:
+                        favorites = set(config_data['favorites'])
+
+                    # Salva tutto
+                    save_persistent_data()
+                    scan_replay_folder()
+
+                    self.send_json({'success': True, 'message': 'Configurazione importata con successo'})
 
             else:
                 self.send_error(404)
@@ -3356,6 +3425,24 @@ body {
                         <span>Salva Impostazioni</span>
                     </button>
                 </div>
+
+                <div class="settings-section" style="margin-top: 16px;">
+                    <div class="settings-section-title">Backup Configurazione</div>
+                    <div class="settings-item-description" style="margin-bottom: 12px;">
+                        Esporta o importa tutte le configurazioni, categorie e preferiti
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="header-btn" onclick="exportConfig()" style="flex: 1; justify-content: center;">
+                            <span>📤</span>
+                            <span>Esporta</span>
+                        </button>
+                        <button class="header-btn" onclick="importConfig()" style="flex: 1; justify-content: center;">
+                            <span>📥</span>
+                            <span>Importa</span>
+                        </button>
+                    </div>
+                    <input type="file" id="import-config-input" accept=".json" style="display: none;" onchange="handleConfigImport(event)">
+                </div>
             </div>
 
             <!-- About Panel -->
@@ -3654,6 +3741,74 @@ async function browseFolder() {
 
     btn.innerHTML = originalText;
     btn.disabled = false;
+}
+
+async function exportConfig() {
+    try {
+        const result = await apiCall('/api/config/export', 'POST', {});
+
+        if (result && result.success && result.config) {
+            // Crea il file JSON da scaricare
+            const configJson = JSON.stringify(result.config, null, 2);
+            const blob = new Blob([configJson], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            // Crea link per download
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `obs-instant-replay-config-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showNotification('Configurazione esportata', 'success');
+        } else {
+            showNotification('Errore esportazione', 'error');
+        }
+    } catch (e) {
+        showNotification('Errore esportazione: ' + e.message, 'error');
+    }
+}
+
+function importConfig() {
+    document.getElementById('import-config-input').click();
+}
+
+async function handleConfigImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+        const text = await file.text();
+        const config = JSON.parse(text);
+
+        // Verifica che sia un file di configurazione valido
+        if (!config.version || !config.settings) {
+            showNotification('File di configurazione non valido', 'error');
+            return;
+        }
+
+        // Conferma importazione
+        if (!confirm(`Importare la configurazione da "${file.name}"?\\n\\nQuesto sovrascriverà le impostazioni attuali.`)) {
+            return;
+        }
+
+        const result = await apiCall('/api/config/import', 'POST', { config });
+
+        if (result && result.success) {
+            showNotification('Configurazione importata con successo', 'success');
+            // Ricarica la pagina per applicare le nuove impostazioni
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification('Errore importazione: ' + (result?.error || 'Sconosciuto'), 'error');
+        }
+    } catch (e) {
+        showNotification('Errore lettura file: ' + e.message, 'error');
+    }
+
+    // Reset input file
+    event.target.value = '';
 }
 
 async function loadReplays() {

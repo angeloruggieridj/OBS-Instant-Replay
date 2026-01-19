@@ -17,7 +17,7 @@ sys.path.insert(0, script_dir)
 try:
     import replay_http_server as server
     SERVER_AVAILABLE = True
-    SERVER_VERSION = "1.0-beta3"
+    SERVER_VERSION = "1.0-beta4"
 except ImportError as e:
     SERVER_AVAILABLE = False
     SERVER_VERSION = None
@@ -27,14 +27,23 @@ except ImportError as e:
 server_port = 8765
 
 
-def load_replay_to_source(file_path, auto_play=True):
-    """Carica un replay nella fonte multimediale"""
+def load_replay_to_source(file_path, auto_play=True, speed=None):
+    """Carica un replay nella fonte multimediale
+
+    Args:
+        file_path: Percorso del file video
+        auto_play: Se True avvia automaticamente, se False carica solo
+        speed: Velocità di riproduzione (0.1-2.0), None usa quella corrente dal server
+    """
     if not SERVER_AVAILABLE:
         return False
 
     media_source_name = server.media_source_name
     target_scene_name = server.target_scene_name
     auto_switch_scene = server.auto_switch_scene
+
+    # Usa la velocità passata o quella corrente dal server
+    playback_speed = speed if speed is not None else getattr(server, 'current_speed', 1.0)
 
     if not media_source_name or not target_scene_name:
         print("⚠ Nome fonte o scena non configurati")
@@ -74,6 +83,10 @@ def load_replay_to_source(file_path, auto_play=True):
         obs.obs_data_set_bool(settings, "looping", False)
         obs.obs_data_set_bool(settings, "hw_decode", True)
 
+        # Imposta la velocità di riproduzione (speed_percent: 100 = 1x, 50 = 0.5x, 200 = 2x)
+        speed_percent = int(playback_speed * 100)
+        obs.obs_data_set_int(settings, "speed_percent", speed_percent)
+
         # READY mode: disabilita restart_on_activate per evitare avvio automatico
         # Questo è fondamentale in Studio Mode dove la transizione attiverebbe il video
         if auto_play:
@@ -89,10 +102,9 @@ def load_replay_to_source(file_path, auto_play=True):
         if auto_play:
             obs.obs_source_media_restart(source)
         else:
-            # READY mode: ferma e vai all'inizio senza riprodurre
+            # READY mode: NON avviare il video, solo prepararlo
+            # Prima ferma qualsiasi riproduzione in corso
             obs.obs_source_media_stop(source)
-            # Imposta il tempo a 0 per essere pronti all'avvio
-            obs.obs_source_media_set_time(source, 0)
 
         if auto_switch_scene:
             scenes = obs.obs_frontend_get_scenes()
@@ -102,9 +114,43 @@ def load_replay_to_source(file_path, auto_play=True):
                     break
             obs.source_list_release(scenes)
 
-        print(f"✓ Replay caricato: {os.path.basename(file_path)}")
+        speed_str = f" @ {playback_speed}x" if playback_speed != 1.0 else ""
+        print(f"✓ Replay caricato: {os.path.basename(file_path)}{speed_str}")
         return True
 
+    return False
+
+
+def set_media_speed(speed):
+    """Imposta la velocità di riproduzione della media source corrente"""
+    if not SERVER_AVAILABLE:
+        return False
+
+    media_source_name = server.media_source_name
+    target_scene_name = server.target_scene_name
+
+    if not media_source_name or not target_scene_name:
+        return False
+
+    scenes = obs.obs_frontend_get_scenes()
+    for scene_source in scenes:
+        if obs.obs_source_get_name(scene_source) == target_scene_name:
+            target_scene = obs.obs_scene_from_source(scene_source)
+            scene_item = obs.obs_scene_find_source(target_scene, media_source_name)
+
+            if scene_item:
+                source = obs.obs_sceneitem_get_source(scene_item)
+                if source:
+                    settings = obs.obs_data_create()
+                    speed_percent = int(speed * 100)
+                    obs.obs_data_set_int(settings, "speed_percent", speed_percent)
+                    obs.obs_source_update(source, settings)
+                    obs.obs_data_release(settings)
+                    obs.source_list_release(scenes)
+                    print(f"✓ Velocità impostata: {speed}x")
+                    return True
+            break
+    obs.source_list_release(scenes)
     return False
 
 
@@ -199,6 +245,7 @@ def script_update(settings):
 
 def script_load(settings):
     global hotkey_id_load_latest, hotkey_id_load_second
+    global hotkey_id_play_pause, hotkey_id_play_next, hotkey_id_open_folder
 
     print("\n" + "=" * 70)
     print("🎬 OBS Replay Manager - Browser Dock Edition")
@@ -206,12 +253,12 @@ def script_load(settings):
 
     if not SERVER_AVAILABLE:
         print("✗ Server HTTP non disponibile")
-        print("  Assicurati che replay_http_server_v4.py sia nella stessa cartella")
+        print("  Assicurati che replay_http_server.py sia nella stessa cartella")
         print("=" * 70 + "\n")
         return
 
     print(f"✓ Server HTTP disponibile ({SERVER_VERSION})")
-    
+
     # Avvia server HTTP
     if server.start_server(server_port):
         print(f"✓ Server avviato su http://localhost:{server_port}")
@@ -219,31 +266,63 @@ def script_load(settings):
     else:
         print(f"✗ Impossibile avviare server sulla porta {server_port}")
         print(f"   Prova a cambiare la porta nelle impostazioni")
-    
+
     print("=" * 70 + "\n")
-    
-    # Hotkeys
+
+    # Hotkeys - Caricamento replay
     hotkey_id_load_latest = obs.obs_hotkey_register_frontend(
         "replay_manager.load_latest",
-        "Carica Ultimo Replay",
+        "Replay: Carica Ultimo",
         lambda pressed: load_latest_hotkey(pressed)
     )
-    
+
     hotkey_id_load_second = obs.obs_hotkey_register_frontend(
         "replay_manager.load_second",
-        "Carica Penultimo Replay",
+        "Replay: Carica Penultimo",
         lambda pressed: load_second_hotkey(pressed)
     )
-    
+
+    # Hotkeys - Controlli riproduzione
+    hotkey_id_play_pause = obs.obs_hotkey_register_frontend(
+        "replay_manager.play_pause",
+        "Replay: Play/Pausa",
+        lambda pressed: play_pause_hotkey(pressed)
+    )
+
+    hotkey_id_play_next = obs.obs_hotkey_register_frontend(
+        "replay_manager.play_next",
+        "Replay: Prossimo in Playlist",
+        lambda pressed: play_next_hotkey(pressed)
+    )
+
+    # Hotkeys - Utilità
+    hotkey_id_open_folder = obs.obs_hotkey_register_frontend(
+        "replay_manager.open_folder",
+        "Replay: Apri Cartella",
+        lambda pressed: open_folder_hotkey(pressed)
+    )
+
     # Carica hotkey salvate
     hotkey_save_array_latest = obs.obs_data_get_array(settings, "load_latest_hotkey")
     obs.obs_hotkey_load(hotkey_id_load_latest, hotkey_save_array_latest)
     obs.obs_data_array_release(hotkey_save_array_latest)
-    
+
     hotkey_save_array_second = obs.obs_data_get_array(settings, "load_second_hotkey")
     obs.obs_hotkey_load(hotkey_id_load_second, hotkey_save_array_second)
     obs.obs_data_array_release(hotkey_save_array_second)
-    
+
+    hotkey_save_array_play_pause = obs.obs_data_get_array(settings, "play_pause_hotkey")
+    obs.obs_hotkey_load(hotkey_id_play_pause, hotkey_save_array_play_pause)
+    obs.obs_data_array_release(hotkey_save_array_play_pause)
+
+    hotkey_save_array_play_next = obs.obs_data_get_array(settings, "play_next_hotkey")
+    obs.obs_hotkey_load(hotkey_id_play_next, hotkey_save_array_play_next)
+    obs.obs_data_array_release(hotkey_save_array_play_next)
+
+    hotkey_save_array_open_folder = obs.obs_data_get_array(settings, "open_folder_hotkey")
+    obs.obs_hotkey_load(hotkey_id_open_folder, hotkey_save_array_open_folder)
+    obs.obs_data_array_release(hotkey_save_array_open_folder)
+
     # Timer per controllare azioni (ogni 500ms per reattività)
     obs.timer_add(check_actions_timer, 500)
 
@@ -309,22 +388,28 @@ def check_actions_timer():
             action_type = action.get('action')
 
             if action_type == 'load_replay':
-                # Ottieni auto_play dalla action
+                # Ottieni auto_play e speed dalla action
                 auto_play = action.get('auto_play', True)
+                speed = action.get('speed', None)
 
                 # Verifica se c'è un path diretto (per highlights) o un index
                 if 'path' in action:
                     # Carica da path diretto
-                    load_replay_to_source(action['path'], auto_play)
+                    load_replay_to_source(action['path'], auto_play, speed)
                     status = "LIVE" if auto_play else "READY"
                     print(f"✓ Highlights caricato ({status}): {os.path.basename(action['path'])}")
                 else:
                     # Carica da index
                     index = action.get('index', 0)
                     if 0 <= index < len(server.replay_files):
-                        load_replay_to_source(server.replay_files[index].path, auto_play)
+                        load_replay_to_source(server.replay_files[index].path, auto_play, speed)
                         status = "LIVE" if auto_play else "READY"
                         print(f"✓ Replay caricato ({status}): {server.replay_files[index].name}")
+
+            elif action_type == 'set_speed':
+                # Imposta la velocità della media source
+                speed = action.get('speed', 1.0)
+                set_media_speed(speed)
 
             elif action_type == 'open_folder':
                 # Apri la cartella replay
@@ -338,13 +423,79 @@ def check_actions_timer():
 def load_latest_hotkey(pressed):
     """Hotkey per caricare ultimo replay"""
     if pressed and SERVER_AVAILABLE and server.replay_files:
-        load_replay_to_source(server.replay_files[0].path)
+        auto_play = getattr(server, 'auto_play_on_load', True)
+        load_replay_to_source(server.replay_files[0].path, auto_play)
 
 
 def load_second_hotkey(pressed):
     """Hotkey per caricare penultimo replay"""
     if pressed and SERVER_AVAILABLE and len(server.replay_files) > 1:
-        load_replay_to_source(server.replay_files[1].path)
+        auto_play = getattr(server, 'auto_play_on_load', True)
+        load_replay_to_source(server.replay_files[1].path, auto_play)
+
+
+def play_pause_hotkey(pressed):
+    """Hotkey per Play/Pausa del video corrente"""
+    if not pressed or not SERVER_AVAILABLE:
+        return
+
+    media_source_name = server.media_source_name
+    target_scene_name = server.target_scene_name
+
+    if not media_source_name or not target_scene_name:
+        return
+
+    scenes = obs.obs_frontend_get_scenes()
+    for scene_source in scenes:
+        if obs.obs_source_get_name(scene_source) == target_scene_name:
+            target_scene = obs.obs_scene_from_source(scene_source)
+            scene_item = obs.obs_scene_find_source(target_scene, media_source_name)
+
+            if scene_item:
+                source = obs.obs_sceneitem_get_source(scene_item)
+                if source:
+                    media_state = obs.obs_source_media_get_state(source)
+                    # OBS_MEDIA_STATE_PLAYING = 2, OBS_MEDIA_STATE_PAUSED = 3
+                    if media_state == 2:  # Playing -> Pause
+                        obs.obs_source_media_play_pause(source, True)
+                        print("⏸ Video in pausa")
+                    else:  # Paused/Stopped -> Play
+                        obs.obs_source_media_play_pause(source, False)
+                        # Se era in READY mode, aggiorna lo stato
+                        if server.current_ready_video:
+                            server.current_playing_video = server.current_ready_video
+                            server.current_ready_video = None
+                        print("▶ Video in riproduzione")
+            break
+    obs.source_list_release(scenes)
+
+
+def play_next_hotkey(pressed):
+    """Hotkey per riprodurre il prossimo video nella playlist"""
+    if not pressed or not SERVER_AVAILABLE:
+        return
+
+    # Chiama l'API del server per riprodurre il prossimo
+    try:
+        if hasattr(server, 'playlist_queue') and server.playlist_queue:
+            # Simula la chiamata API play-next
+            import urllib.request
+            req = urllib.request.Request(
+                f'http://localhost:{server_port}/api/queue/play-next',
+                data=b'{}',
+                headers={'Content-Type': 'application/json'},
+                method='POST'
+            )
+            urllib.request.urlopen(req, timeout=2)
+            print("⏭ Riproduzione prossimo in playlist")
+    except Exception as e:
+        print(f"⚠ Errore play next: {e}")
+
+
+def open_folder_hotkey(pressed):
+    """Hotkey per aprire la cartella replay"""
+    if pressed and SERVER_AVAILABLE:
+        open_replay_folder()
 
 
 def script_unload():
@@ -370,9 +521,24 @@ def script_unload():
 
     # Unregister hotkeys
     try:
+        hotkeys_removed = 0
         if 'hotkey_id_load_latest' in globals() and hotkey_id_load_latest != obs.OBS_INVALID_HOTKEY_ID:
             obs.obs_hotkey_unregister(hotkey_id_load_latest)
-            print("✓ Hotkey rimossi")
+            hotkeys_removed += 1
+        if 'hotkey_id_load_second' in globals() and hotkey_id_load_second != obs.OBS_INVALID_HOTKEY_ID:
+            obs.obs_hotkey_unregister(hotkey_id_load_second)
+            hotkeys_removed += 1
+        if 'hotkey_id_play_pause' in globals() and hotkey_id_play_pause != obs.OBS_INVALID_HOTKEY_ID:
+            obs.obs_hotkey_unregister(hotkey_id_play_pause)
+            hotkeys_removed += 1
+        if 'hotkey_id_play_next' in globals() and hotkey_id_play_next != obs.OBS_INVALID_HOTKEY_ID:
+            obs.obs_hotkey_unregister(hotkey_id_play_next)
+            hotkeys_removed += 1
+        if 'hotkey_id_open_folder' in globals() and hotkey_id_open_folder != obs.OBS_INVALID_HOTKEY_ID:
+            obs.obs_hotkey_unregister(hotkey_id_open_folder)
+            hotkeys_removed += 1
+        if hotkeys_removed > 0:
+            print(f"✓ {hotkeys_removed} hotkey rimossi")
     except Exception as e:
         print(f"⚠ Errore rimozione hotkey: {e}")
 
@@ -383,17 +549,35 @@ def script_unload():
 
 def script_save(settings):
     """Salva le impostazioni"""
-    if 'hotkey_id_load_latest' in globals():
+    if 'hotkey_id_load_latest' in globals() and hotkey_id_load_latest != obs.OBS_INVALID_HOTKEY_ID:
         hotkey_save_array_latest = obs.obs_hotkey_save(hotkey_id_load_latest)
         obs.obs_data_set_array(settings, "load_latest_hotkey", hotkey_save_array_latest)
         obs.obs_data_array_release(hotkey_save_array_latest)
-    
-    if 'hotkey_id_load_second' in globals():
+
+    if 'hotkey_id_load_second' in globals() and hotkey_id_load_second != obs.OBS_INVALID_HOTKEY_ID:
         hotkey_save_array_second = obs.obs_hotkey_save(hotkey_id_load_second)
         obs.obs_data_set_array(settings, "load_second_hotkey", hotkey_save_array_second)
         obs.obs_data_array_release(hotkey_save_array_second)
+
+    if 'hotkey_id_play_pause' in globals() and hotkey_id_play_pause != obs.OBS_INVALID_HOTKEY_ID:
+        hotkey_save_array = obs.obs_hotkey_save(hotkey_id_play_pause)
+        obs.obs_data_set_array(settings, "play_pause_hotkey", hotkey_save_array)
+        obs.obs_data_array_release(hotkey_save_array)
+
+    if 'hotkey_id_play_next' in globals() and hotkey_id_play_next != obs.OBS_INVALID_HOTKEY_ID:
+        hotkey_save_array = obs.obs_hotkey_save(hotkey_id_play_next)
+        obs.obs_data_set_array(settings, "play_next_hotkey", hotkey_save_array)
+        obs.obs_data_array_release(hotkey_save_array)
+
+    if 'hotkey_id_open_folder' in globals() and hotkey_id_open_folder != obs.OBS_INVALID_HOTKEY_ID:
+        hotkey_save_array = obs.obs_hotkey_save(hotkey_id_open_folder)
+        obs.obs_data_set_array(settings, "open_folder_hotkey", hotkey_save_array)
+        obs.obs_data_array_release(hotkey_save_array)
 
 
 # Variabili hotkey
 hotkey_id_load_latest = obs.OBS_INVALID_HOTKEY_ID
 hotkey_id_load_second = obs.OBS_INVALID_HOTKEY_ID
+hotkey_id_play_pause = obs.OBS_INVALID_HOTKEY_ID
+hotkey_id_play_next = obs.OBS_INVALID_HOTKEY_ID
+hotkey_id_open_folder = obs.OBS_INVALID_HOTKEY_ID
