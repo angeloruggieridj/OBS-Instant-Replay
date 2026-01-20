@@ -803,47 +803,44 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                 self.send_json({'success': True, 'count': len(replay_files)})
 
             elif path == '/api/load':
-                index = data.get('index', -1)
-                if 0 <= index < len(replay_files):
-                    video_path = replay_files[index].path
-
+                video_path = data.get('path', '')
+                # Verifica che il file esista
+                if video_path and os.path.exists(video_path):
                     # Video caricato in modalità READY (pronto per avvio manuale)
                     current_ready_video = video_path
                     current_playing_video = None
 
                     action_queue.put({
                         'action': 'load_replay',
-                        'index': index,
                         'path': video_path,
                         'speed': current_speed
                     })
 
                     self.send_json({'success': True})
                 else:
-                    self.send_json({'success': False})
+                    self.send_json({'success': False, 'error': 'File non trovato'})
 
             elif path == '/api/delete':
-                index = data.get('index', -1)
-                if 0 <= index < len(replay_files):
+                video_path = data.get('path', '')
+                if video_path and os.path.exists(video_path):
                     try:
-                        os.remove(replay_files[index].path)
+                        os.remove(video_path)
                         scan_replay_folder()
                         save_persistent_data()
                         self.send_json({'success': True})
                     except:
-                        self.send_json({'success': False})
+                        self.send_json({'success': False, 'error': 'Errore eliminazione'})
                 else:
                     self.send_json({'success': False})
 
             elif path == '/api/toggle-favorite':
-                index = data.get('index', -1)
-                if 0 <= index < len(replay_files):
-                    file_path = replay_files[index].path
-                    if file_path in favorites:
-                        favorites.remove(file_path)
+                video_path = data.get('path', '')
+                if video_path and os.path.exists(video_path):
+                    if video_path in favorites:
+                        favorites.remove(video_path)
                         is_fav = False
                     else:
-                        favorites.add(file_path)
+                        favorites.add(video_path)
                         is_fav = True
                     save_persistent_data()
                     self.send_json({'success': True, 'favorite': is_fav})
@@ -851,14 +848,13 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                     self.send_json({'success': False})
 
             elif path == '/api/queue/add':
-                index = data.get('index', -1)
-                if 0 <= index < len(replay_files):
-                    rf = replay_files[index]
-                    if not any(item['path'] == rf.path for item in playlist_queue):
+                video_path = data.get('path', '')
+                if video_path and os.path.exists(video_path):
+                    if not any(item['path'] == video_path for item in playlist_queue):
+                        video_name = os.path.basename(video_path)
                         playlist_queue.append({
-                            'path': rf.path,
-                            'name': rf.name,
-                            'index': index
+                            'path': video_path,
+                            'name': video_name
                         })
                         save_persistent_data()
                         self.send_json({'success': True, 'queue_count': len(playlist_queue)})
@@ -990,22 +986,22 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                     self.send_json({'success': False, 'error': 'Categoria non trovata'})
 
             elif path == '/api/category/assign':
-                index = data.get('index', -1)
+                video_path = data.get('path', '')
                 category = data.get('category')
-                if 0 <= index < len(replay_files):
+                if video_path and os.path.exists(video_path):
                     if category:
-                        video_categories[replay_files[index].path] = category
-                    elif replay_files[index].path in video_categories:
-                        del video_categories[replay_files[index].path]
+                        video_categories[video_path] = category
+                    elif video_path in video_categories:
+                        del video_categories[video_path]
                     save_persistent_data()
                     self.send_json({'success': True})
                 else:
                     self.send_json({'success': False})
 
             elif path == '/api/hide':
-                index = data.get('index', -1)
-                if 0 <= index < len(replay_files):
-                    hidden_videos.add(replay_files[index].path)
+                video_path = data.get('path', '')
+                if video_path and os.path.exists(video_path):
+                    hidden_videos.add(video_path)
                     save_persistent_data()
                     self.send_json({'success': True})
                 else:
@@ -3873,25 +3869,17 @@ async function renderHighlights() {
 }
 
 async function loadHighlightFile(path) {
-    const replay = allReplays.find(r => r.path === path);
-    if (replay) {
-        await loadVideo(replay.index);
-        closeHighlightsModal();
-        showNotification('Highlights caricato in OBS', 'success');
-    } else {
-        showNotification('File non trovato', 'error');
-    }
+    await loadVideo(path);
+    closeHighlightsModal();
+    showNotification('Highlights caricato in OBS', 'success');
 }
 
-async function deleteHighlightFile(path) {
+async function deleteHighlightFile(filePath) {
     if (!confirm('Eliminare questo file highlights?')) return;
-    const replay = allReplays.find(r => r.path === path);
-    if (replay) {
-        await apiCall('/api/delete', 'POST', { index: replay.index });
-        await loadReplays();
-        await renderHighlights();
-        showNotification('Highlights eliminato', 'success');
-    }
+    await apiCall('/api/delete', 'POST', { path: filePath });
+    await loadReplays();
+    await renderHighlights();
+    showNotification('Highlights eliminato', 'success');
     document.getElementById('highlights-modal').classList.remove('active');
 }
 
@@ -3970,25 +3958,25 @@ function renderVideoGrid(replays = allReplays) {
 
     // Ottieni le card esistenti
     const existingCards = grid.querySelectorAll('.video-card');
-    const existingIndexes = new Set();
+    const existingPaths = new Set();
     existingCards.forEach(card => {
-        existingIndexes.add(parseInt(card.dataset.index));
+        existingPaths.add(card.dataset.path);
     });
 
-    // Costruisci set di indici dei replay da mostrare
-    const replayIndexes = new Set(replays.map(r => r.index));
+    // Costruisci set di path dei replay da mostrare
+    const replayPaths = new Set(replays.map(r => r.path));
 
     // Rimuovi card non più presenti
     existingCards.forEach(card => {
-        const idx = parseInt(card.dataset.index);
-        if (!replayIndexes.has(idx)) {
+        const cardPath = card.dataset.path;
+        if (!replayPaths.has(cardPath)) {
             card.remove();
         }
     });
 
     // Aggiorna o crea card per ogni replay
     replays.forEach((replay, position) => {
-        const existingCard = grid.querySelector(`.video-card[data-index="${replay.index}"]`);
+        const existingCard = grid.querySelector(`.video-card[data-path="${CSS.escape(replay.path)}"]`);
 
         if (existingCard) {
             // Aggiorna solo i badge e le info, non ricreare il video
@@ -4011,7 +3999,7 @@ function renderVideoGrid(replays = allReplays) {
 
     // Riordina le card se necessario
     replays.forEach((replay, position) => {
-        const card = grid.querySelector(`.video-card[data-index="${replay.index}"]`);
+        const card = grid.querySelector(`.video-card[data-path="${CSS.escape(replay.path)}"]`);
         if (card && card !== grid.children[position]) {
             grid.insertBefore(card, grid.children[position]);
         }
@@ -4080,6 +4068,8 @@ function updateCardBadges(card, replay) {
 
 function createVideoCard(replay) {
     const badges = [];
+    // Escape path per uso in attributi HTML
+    const escapedPath = replay.path.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
     // Badge READY (posizionato in alto a destra)
     let statusBadge = '';
@@ -4105,7 +4095,7 @@ function createVideoCard(replay) {
     const durationBadge = replay.duration_str ? `<div class="badge-duration">${replay.duration_str}</div>` : '';
 
     return `
-        <div class="video-card" data-index="${replay.index}" oncontextmenu="showContextMenu(event, ${replay.index}); return false;">
+        <div class="video-card" data-path="${replay.path}" data-name="${replay.name}" oncontextmenu="showContextMenu(event, this); return false;">
             <div class="video-thumbnail">
                 <img src="/api/thumbnail/${replay.index}" alt="${replay.name}">
                 <video muted loop preload="none">
@@ -4128,24 +4118,24 @@ function createVideoCard(replay) {
             </div>
 
             <div class="video-actions">
-                <button class="video-action-btn ${replay.favorite ? 'active' : ''}" onclick="toggleFavorite(${replay.index})" title="Preferito">⭐</button>
-                <button class="video-action-btn" onclick="loadVideo(${replay.index})" title="Carica in OBS">▶️</button>
-                <button class="video-action-btn" onclick="addToQueue(${replay.index})" title="Aggiungi a coda">📋</button>
+                <button class="video-action-btn ${replay.favorite ? 'active' : ''}" onclick="toggleFavorite('${escapedPath}')" title="Preferito">⭐</button>
+                <button class="video-action-btn" onclick="loadVideo('${escapedPath}')" title="Carica in OBS">▶️</button>
+                <button class="video-action-btn" onclick="addToQueue('${escapedPath}')" title="Aggiungi a coda">📋</button>
             </div>
         </div>
     `;
 }
 
-async function toggleFavorite(index) {
-    const result = await apiCall('/api/toggle-favorite', 'POST', { index });
+async function toggleFavorite(path) {
+    const result = await apiCall('/api/toggle-favorite', 'POST', { path });
     if (result && result.success) {
         await loadReplays();
         showNotification(result.favorite ? 'Aggiunto ai preferiti' : 'Rimosso dai preferiti', 'success');
     }
 }
 
-async function addToQueue(index) {
-    const result = await apiCall('/api/queue/add', 'POST', { index });
+async function addToQueue(path) {
+    const result = await apiCall('/api/queue/add', 'POST', { path });
     if (result && result.success) {
         await loadReplays();
         showNotification('Aggiunto alla coda', 'success');
@@ -4154,8 +4144,8 @@ async function addToQueue(index) {
     }
 }
 
-async function loadVideo(index) {
-    const result = await apiCall('/api/load', 'POST', { index });
+async function loadVideo(path) {
+    const result = await apiCall('/api/load', 'POST', { path });
     if (result && result.success) {
         showNotification('Video caricato (pronto per avvio)', 'success');
         // Forza refresh immediato per mostrare badge
@@ -4163,9 +4153,9 @@ async function loadVideo(index) {
     }
 }
 
-async function hideVideo(index) {
+async function hideVideo(path) {
     if (confirm('Nascondere questo video?')) {
-        const result = await apiCall('/api/hide', 'POST', { index });
+        const result = await apiCall('/api/hide', 'POST', { path });
         if (result && result.success) {
             await loadReplays();
             showNotification('Video nascosto', 'success');
@@ -4173,10 +4163,9 @@ async function hideVideo(index) {
     }
 }
 
-async function deleteVideo(index) {
-    const replay = allReplays.find(r => r.index === index);
-    if (confirm(`Eliminare definitivamente "${replay.name}"?`)) {
-        const result = await apiCall('/api/delete', 'POST', { index });
+async function deleteVideo(path, name) {
+    if (confirm(`Eliminare definitivamente "${name}"?`)) {
+        const result = await apiCall('/api/delete', 'POST', { path });
         if (result && result.success) {
             await loadReplays();
             showNotification('Video eliminato', 'success');
@@ -4184,21 +4173,25 @@ async function deleteVideo(index) {
     }
 }
 
-async function setVideoSpeed(index, speed) {
-    await loadVideo(index);
+async function setVideoSpeed(path, speed) {
+    await loadVideo(path);
     await setGlobalSpeed(speed);
     showNotification(`Video caricato a velocità ${speed}x`, 'success');
 }
 
 // ==================== CONTEXT MENU FUNCTIONS ====================
-let contextMenuIndex = -1;
+let contextMenuPath = '';
 
-function showContextMenu(event, index) {
+function showContextMenu(event, cardElement) {
     event.preventDefault();
-    contextMenuIndex = index;
+    const videoPath = cardElement.dataset.path;
+    contextMenuPath = videoPath;
 
-    const replay = allReplays.find(r => r.index === index);
+    const replay = allReplays.find(r => r.path === videoPath);
     if (!replay) return;
+
+    // Escape path per onclick handlers
+    const escapedPath = videoPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
     // Remove existing menu
     const existing = document.getElementById('context-menu');
@@ -4215,13 +4208,13 @@ function showContextMenu(event, index) {
     let html = '';
 
     // Favorite action
-    html += `<div class="context-menu-item ${isFav ? 'active' : ''}" onclick="toggleFavorite(${index}); hideContextMenu();">`;
+    html += `<div class="context-menu-item ${isFav ? 'active' : ''}" onclick="toggleFavorite('${escapedPath}'); hideContextMenu();">`;
     html += `<span class="menu-icon">${isFav ? '★' : '☆'}</span>`;
     html += `<span>${isFav ? 'Rimuovi da preferiti' : 'Aggiungi a preferiti'}</span>`;
     html += `</div>`;
 
     // Add to queue
-    html += `<div class="context-menu-item" onclick="addToQueue(${index}); hideContextMenu();">`;
+    html += `<div class="context-menu-item" onclick="addToQueue('${escapedPath}'); hideContextMenu();">`;
     html += `<span class="menu-icon">📋</span>`;
     html += `<span>Aggiungi a playlist</span>`;
     html += `</div>`;
@@ -4233,7 +4226,7 @@ function showContextMenu(event, index) {
 
     // No category option
     const noCategory = !replay.category;
-    html += `<div class="context-menu-category ${noCategory ? 'selected' : ''}" onclick="assignCategory(${index}, null); hideContextMenu();">`;
+    html += `<div class="context-menu-category ${noCategory ? 'selected' : ''}" onclick="assignCategory('${escapedPath}', null); hideContextMenu();">`;
     html += `<span class="category-dot" style="background: #555;"></span>`;
     html += `<span>Nessuna</span>`;
     if (noCategory) html += `<span class="category-check">✓</span>`;
@@ -4243,7 +4236,7 @@ function showContextMenu(event, index) {
     Object.entries(categories).forEach(([name, data]) => {
         const isActive = replay.category === name;
         const color = data.color || data;
-        html += `<div class="context-menu-category ${isActive ? 'selected' : ''}" onclick="assignCategory(${index}, '${name.replace(/'/g, "\\'")}'); hideContextMenu();">`;
+        html += `<div class="context-menu-category ${isActive ? 'selected' : ''}" onclick="assignCategory('${escapedPath}', '${name.replace(/'/g, "\\'")}'); hideContextMenu();">`;
         html += `<span class="category-dot" style="background: ${color};"></span>`;
         html += `<span>${name}</span>`;
         if (isActive) html += `<span class="category-check">✓</span>`;
@@ -4293,12 +4286,12 @@ function showContextMenu(event, index) {
 function hideContextMenu() {
     const menu = document.getElementById('context-menu');
     if (menu) menu.remove();
-    contextMenuIndex = -1;
+    contextMenuPath = '';
 }
 
-async function assignCategory(index, categoryName) {
+async function assignCategory(videoPath, categoryName) {
     const result = await apiCall('/api/category/assign', 'POST', {
-        index: index,
+        path: videoPath,
         category: categoryName
     });
 
@@ -4398,7 +4391,7 @@ async function playVideoFromQueue(index) {
     const video = playlistQueue[index];
 
     // Carica video in OBS
-    await loadVideo(video.index);
+    await loadVideo(video.path);
 
     // Mostra "now playing"
     const nowPlaying = document.getElementById('now-playing');
@@ -4407,7 +4400,7 @@ async function playVideoFromQueue(index) {
     nowPlayingTitle.textContent = video.name;
 
     // Trova durata video
-    const replay = allReplays.find(r => r.index === video.index);
+    const replay = allReplays.find(r => r.path === video.path);
     const duration = replay ? replay.duration : 30; // default 30s se non disponibile
     const durationMs = (duration || 30) * 1000;
 
@@ -4559,7 +4552,7 @@ async function createHighlightsFromQueue() {
             await refreshReplays();
             const highlightsVideo = allReplays.find(r => r.name === result.name);
             if (highlightsVideo) {
-                await loadVideo(highlightsVideo.index);
+                await loadVideo(highlightsVideo.path);
             }
         }
     } else {
