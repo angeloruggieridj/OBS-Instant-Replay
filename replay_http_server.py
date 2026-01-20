@@ -47,7 +47,7 @@ SERVER_PORT = 8765
 action_queue = queue.Queue()
 
 # Nuove variabili per funzionalità estese
-favorites = set()  # Indici dei video preferiti
+favorites = set()  # Percorsi dei video preferiti
 playlist_queue = []  # Coda di riproduzione
 categories = {}  # {category_name: color}
 video_categories = {}  # {file_path: category_name}
@@ -443,7 +443,7 @@ class ReplayFile:
         return mime_types.get(self.extension, 'video/mp4')
 
     def to_dict(self, index=None):
-        is_favorite = index in favorites
+        is_favorite = self.path in favorites
         is_hidden = self.path in hidden_videos
         category = video_categories.get(self.path)
         in_queue_index = -1
@@ -568,8 +568,8 @@ def cleanup_persistent_data():
     # Pulisci video_categories
     video_categories = {k: v for k, v in video_categories.items() if k in existing_paths}
 
-    # Pulisci favorites (sono indici, quindi verifica il range)
-    favorites = {i for i in favorites if i < len(replay_files)}
+    # Pulisci favorites (sono path, quindi verifica esistenza)
+    favorites = favorites.intersection(existing_paths)
 
 
 def create_highlights_video(use_queue=True):
@@ -706,7 +706,10 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
             self.send_json({'success': True, 'count': len(replay_files)})
 
         elif path == '/api/favorites':
-            fav_list = [replay_files[i].to_dict(index=i) for i in favorites if i < len(replay_files)]
+            fav_list = []
+            for i, rf in enumerate(replay_files):
+                if rf.path in favorites:
+                    fav_list.append(rf.to_dict(index=i))
             self.send_json({'favorites': fav_list, 'count': len(fav_list)})
 
         elif path == '/api/queue':
@@ -835,11 +838,12 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
             elif path == '/api/toggle-favorite':
                 index = data.get('index', -1)
                 if 0 <= index < len(replay_files):
-                    if index in favorites:
-                        favorites.remove(index)
+                    file_path = replay_files[index].path
+                    if file_path in favorites:
+                        favorites.remove(file_path)
                         is_fav = False
                     else:
-                        favorites.add(index)
+                        favorites.add(file_path)
                         is_fav = True
                     save_persistent_data()
                     self.send_json({'success': True, 'favorite': is_fav})
