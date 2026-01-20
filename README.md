@@ -1,6 +1,6 @@
 # OBS Instant Replay
 
-[![Version](https://img.shields.io/badge/version-1.0--beta2-blue.svg)](https://github.com/angeloruggieridj/OBS-Instant-Replay/releases)
+[![Version](https://img.shields.io/badge/version-1.0--beta4-blue.svg)](https://github.com/angeloruggieridj/OBS-Instant-Replay/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [English](#english) | [Italiano](#italiano) | [Español](#español) | [Français](#français) | [Deutsch](#deutsch)
@@ -75,7 +75,7 @@ sudo dnf install ffmpeg
 
 #### Step 2: Install the Script
 
-1. Download `obs_replay_manager_browser.py` and `replay_http_server_v4.py`
+1. Download `obs_replay_manager_browser.py` and `replay_http_server.py`
 2. Copy both files to your OBS Studio scripts directory:
    - **Windows**: `%APPDATA%\obs-studio\scripts\`
    - **macOS**: `~/Library/Application Support/obs-studio/scripts/`
@@ -105,7 +105,7 @@ sudo dnf install ffmpeg
 ### Main Files
 
 - `obs_replay_manager_browser.py`: Main OBS Studio script
-- `replay_http_server_v4.py`: HTTP server with REST API and web interface
+- `replay_http_server.py`: HTTP server with REST API and web interface
 
 ---
 
@@ -167,7 +167,7 @@ sudo apt install ffmpeg
 
 #### Passo 2: Installare lo Script
 
-1. Scarica `obs_replay_manager_browser.py` e `replay_http_server_v4.py`
+1. Scarica `obs_replay_manager_browser.py` e `replay_http_server.py`
 2. Copia entrambi i file nella directory degli script di OBS Studio:
    - **Windows**: `%APPDATA%\obs-studio\scripts\`
    - **macOS**: `~/Library/Application Support/obs-studio/scripts/`
@@ -254,7 +254,7 @@ sudo apt install ffmpeg
 
 #### Paso 2: Instalar el Script
 
-1. Descarga `obs_replay_manager_browser.py` y `replay_http_server_v4.py`
+1. Descarga `obs_replay_manager_browser.py` y `replay_http_server.py`
 2. Copia ambos archivos en el directorio de scripts de OBS Studio:
    - **Windows**: `%APPDATA%\obs-studio\scripts\`
    - **macOS**: `~/Library/Application Support/obs-studio/scripts/`
@@ -323,7 +323,7 @@ sudo apt install ffmpeg
 
 #### Étape 2: Installer le Script
 
-1. Téléchargez `obs_replay_manager_browser.py` et `replay_http_server_v4.py`
+1. Téléchargez `obs_replay_manager_browser.py` et `replay_http_server.py`
 2. Copiez les deux fichiers dans le répertoire des scripts OBS Studio:
    - **Windows**: `%APPDATA%\obs-studio\scripts\`
    - **macOS**: `~/Library/Application Support/obs-studio/scripts/`
@@ -392,7 +392,7 @@ sudo apt install ffmpeg
 
 #### Schritt 2: Das Skript installieren
 
-1. Laden Sie `obs_replay_manager_browser.py` und `replay_http_server_v4.py` herunter
+1. Laden Sie `obs_replay_manager_browser.py` und `replay_http_server.py` herunter
 2. Kopieren Sie beide Dateien in das OBS Studio Skriptverzeichnis:
    - **Windows**: `%APPDATA%\obs-studio\scripts\`
    - **macOS**: `~/Library/Application Support/obs-studio/scripts/`
