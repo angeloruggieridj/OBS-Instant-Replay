@@ -4069,7 +4069,7 @@ function updateCardBadges(card, replay) {
 function createVideoCard(replay) {
     const badges = [];
     // Escape path per uso in attributi HTML
-    const escapedPath = replay.path.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    const escapedPath = replay.path.replace(/\\\\/g, '\\\\\\\\').replace(/'/g, "\\\\'");
 
     // Badge READY (posizionato in alto a destra)
     let statusBadge = '';
@@ -4191,7 +4191,7 @@ function showContextMenu(event, cardElement) {
     if (!replay) return;
 
     // Escape path per onclick handlers
-    const escapedPath = videoPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    const escapedPath = videoPath.replace(/\\\\/g, '\\\\\\\\').replace(/'/g, "\\\\'");
 
     // Remove existing menu
     const existing = document.getElementById('context-menu');
@@ -4236,7 +4236,7 @@ function showContextMenu(event, cardElement) {
     Object.entries(categories).forEach(([name, data]) => {
         const isActive = replay.category === name;
         const color = data.color || data;
-        html += `<div class="context-menu-category ${isActive ? 'selected' : ''}" onclick="assignCategory('${escapedPath}', '${name.replace(/'/g, "\\'")}'); hideContextMenu();">`;
+        html += `<div class="context-menu-category ${isActive ? 'selected' : ''}" onclick="assignCategory('${escapedPath}', '${name.replace(/'/g, "\\\\'")}'); hideContextMenu();">`;
         html += `<span class="category-dot" style="background: ${color};"></span>`;
         html += `<span>${name}</span>`;
         if (isActive) html += `<span class="category-check">✓</span>`;
