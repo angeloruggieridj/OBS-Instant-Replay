@@ -1840,7 +1840,16 @@ body {
 }
 
 .badge-duration {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.75);
     color: white;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    backdrop-filter: blur(5px);
 }
 
 .badge-favorite {
@@ -4023,50 +4032,58 @@ function renderVideoGrid(replays = allReplays) {
 function updateCardBadges(card, replay) {
     // Aggiorna badge LIVE/READY
     const thumbnail = card.querySelector('.video-thumbnail');
-    let statusBadge = thumbnail.querySelector('.badge-live, .badge-ready');
 
+    // Rimuovi sempre i badge esistenti prima di aggiungere quello corretto
+    const existingLive = thumbnail.querySelector('.badge-live');
+    const existingReady = thumbnail.querySelector('.badge-ready');
+    if (existingLive) existingLive.remove();
+    if (existingReady) existingReady.remove();
+
+    // Aggiungi il badge appropriato
     if (replay.is_playing) {
-        if (!statusBadge || !statusBadge.classList.contains('badge-live')) {
-            if (statusBadge) statusBadge.remove();
-            const badge = document.createElement('div');
-            badge.className = 'badge-live';
-            badge.innerHTML = '● LIVE';
-            thumbnail.insertBefore(badge, thumbnail.querySelector('.video-badges'));
-        }
+        const badge = document.createElement('div');
+        badge.className = 'badge-live';
+        badge.innerHTML = '● LIVE';
+        thumbnail.appendChild(badge);
     } else if (replay.is_ready) {
-        if (!statusBadge || !statusBadge.classList.contains('badge-ready')) {
-            if (statusBadge) statusBadge.remove();
-            const badge = document.createElement('div');
-            badge.className = 'badge-ready';
-            badge.innerHTML = '● READY';
-            thumbnail.insertBefore(badge, thumbnail.querySelector('.video-badges'));
-        }
-    } else {
-        if (statusBadge) statusBadge.remove();
+        const badge = document.createElement('div');
+        badge.className = 'badge-ready';
+        badge.innerHTML = '● READY';
+        thumbnail.appendChild(badge);
     }
 
-    // Aggiorna altri badge
+    // Aggiorna badge in alto a sinistra (categoria, preferito, coda)
     const badgesContainer = card.querySelector('.video-badges');
     const badges = [];
 
-    if (replay.favorite) {
-        badges.push('<div class="video-badge badge-favorite">⭐ Preferito</div>');
-    }
-
+    // Categoria prima
     if (replay.category) {
         const categoryColor = replay.category_color || '#888';
         badges.push(`<div class="video-badge badge-category" style="background-color: ${categoryColor}; color: white;">${replay.category}</div>`);
+    }
+
+    if (replay.favorite) {
+        badges.push('<div class="video-badge badge-favorite">⭐ Preferito</div>');
     }
 
     if (replay.in_queue) {
         badges.push(`<div class="video-badge badge-queue">#${replay.queue_index + 1} Coda</div>`);
     }
 
-    if (replay.duration_str) {
-        badges.push(`<div class="video-badge badge-duration">⏱️ ${replay.duration_str}</div>`);
-    }
-
     badgesContainer.innerHTML = badges.join('');
+
+    // Aggiorna badge durata (in basso a destra)
+    let durationBadge = thumbnail.querySelector('.badge-duration');
+    if (replay.duration_str) {
+        if (!durationBadge) {
+            durationBadge = document.createElement('div');
+            durationBadge.className = 'badge-duration';
+            thumbnail.appendChild(durationBadge);
+        }
+        durationBadge.textContent = replay.duration_str;
+    } else if (durationBadge) {
+        durationBadge.remove();
+    }
 
     // Aggiorna pulsante preferito
     const favBtn = card.querySelector('.video-action-btn');
@@ -4082,7 +4099,7 @@ function updateCardBadges(card, replay) {
 function createVideoCard(replay) {
     const badges = [];
 
-    // Badge LIVE o READY (separato, posizionato a destra)
+    // Badge LIVE o READY (separato, posizionato in alto a destra)
     let statusBadge = '';
     if (replay.is_playing) {
         statusBadge = '<div class="badge-live">● LIVE</div>';
@@ -4090,23 +4107,22 @@ function createVideoCard(replay) {
         statusBadge = '<div class="badge-ready">● READY</div>';
     }
 
-    if (replay.favorite) {
-        badges.push('<div class="video-badge badge-favorite">⭐ Preferito</div>');
-    }
-
+    // Badge categoria (in alto a sinistra)
     if (replay.category) {
         const categoryColor = replay.category_color || '#888';
         badges.push(`<div class="video-badge badge-category" style="background-color: ${categoryColor}; color: white;">${replay.category}</div>`);
+    }
+
+    if (replay.favorite) {
+        badges.push('<div class="video-badge badge-favorite">⭐ Preferito</div>');
     }
 
     if (replay.in_queue) {
         badges.push(`<div class="video-badge badge-queue">#${replay.queue_index + 1} Coda</div>`);
     }
 
-    // Badge durata
-    if (replay.duration_str) {
-        badges.push(`<div class="video-badge badge-duration">⏱️ ${replay.duration_str}</div>`);
-    }
+    // Badge durata (separato, in basso a destra)
+    const durationBadge = replay.duration_str ? `<div class="badge-duration">${replay.duration_str}</div>` : '';
 
     return `
         <div class="video-card" data-index="${replay.index}" oncontextmenu="showContextMenu(event, ${replay.index}); return false;">
@@ -4120,6 +4136,7 @@ function createVideoCard(replay) {
                 <div class="video-badges">
                     ${badges.join('')}
                 </div>
+                ${durationBadge}
             </div>
 
             <div class="video-info">
