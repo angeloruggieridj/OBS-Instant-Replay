@@ -1865,21 +1865,6 @@ body {
     color: white;
 }
 
-.badge-live {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: #c00;
-    color: white;
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 700;
-    border: 2px solid white;
-    z-index: 10;
-    animation: pulse 1.5s infinite;
-}
-
 .badge-ready {
     position: absolute;
     top: 8px;
@@ -4030,22 +4015,15 @@ function renderVideoGrid(replays = allReplays) {
 }
 
 function updateCardBadges(card, replay) {
-    // Aggiorna badge LIVE/READY
+    // Aggiorna badge READY
     const thumbnail = card.querySelector('.video-thumbnail');
 
-    // Rimuovi sempre i badge esistenti prima di aggiungere quello corretto
-    const existingLive = thumbnail.querySelector('.badge-live');
+    // Rimuovi badge READY esistente prima di aggiungere quello nuovo
     const existingReady = thumbnail.querySelector('.badge-ready');
-    if (existingLive) existingLive.remove();
     if (existingReady) existingReady.remove();
 
-    // Aggiungi il badge appropriato
-    if (replay.is_playing) {
-        const badge = document.createElement('div');
-        badge.className = 'badge-live';
-        badge.innerHTML = '● LIVE';
-        thumbnail.appendChild(badge);
-    } else if (replay.is_ready) {
+    // Aggiungi badge READY se il video è pronto
+    if (replay.is_ready) {
         const badge = document.createElement('div');
         badge.className = 'badge-ready';
         badge.innerHTML = '● READY';
@@ -4099,11 +4077,9 @@ function updateCardBadges(card, replay) {
 function createVideoCard(replay) {
     const badges = [];
 
-    // Badge LIVE o READY (separato, posizionato in alto a destra)
+    // Badge READY (posizionato in alto a destra)
     let statusBadge = '';
-    if (replay.is_playing) {
-        statusBadge = '<div class="badge-live">● LIVE</div>';
-    } else if (replay.is_ready) {
+    if (replay.is_ready) {
         statusBadge = '<div class="badge-ready">● READY</div>';
     }
 

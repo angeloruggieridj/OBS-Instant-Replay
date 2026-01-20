@@ -28,9 +28,7 @@ Advanced replay management system for OBS Studio with integrated web interface.
   - Light/dark themes
   - Create highlights video from favorites
 
-- **READY/LIVE Modes**:
-  - LIVE: Video starts automatically when loaded
-  - READY: Video is loaded but waits for manual start (perfect for Stream Deck)
+- **READY Mode**: Video is loaded but waits for manual start (perfect for Stream Deck)
 
 - **Auto-Update System**:
   - Check for updates from GitHub
@@ -130,9 +128,7 @@ Sistema avanzato di gestione replay per OBS Studio con interfaccia web integrata
   - Temi chiaro/scuro
   - Creazione video highlights dai preferiti
 
-- **Modalità READY/LIVE**:
-  - LIVE: Il video parte automaticamente quando caricato
-  - READY: Il video viene caricato ma attende l'avvio manuale (perfetto per Stream Deck)
+- **Modalità READY**: Il video viene caricato ma attende l'avvio manuale (perfetto per Stream Deck)
 
 ### Requisiti
 
@@ -217,9 +213,7 @@ Sistema avanzado de gestión de repeticiones para OBS Studio con interfaz web in
   - Temas claro/oscuro
   - Crear video de highlights desde favoritos
 
-- **Modos READY/LIVE**:
-  - LIVE: El video comienza automáticamente al cargar
-  - READY: El video se carga pero espera inicio manual (perfecto para Stream Deck)
+- **Modo READY**: El video se carga pero espera inicio manual (perfecto para Stream Deck)
 
 ### Requisitos
 
@@ -286,9 +280,7 @@ Système avancé de gestion des replays pour OBS Studio avec interface web inté
   - Thèmes clair/sombre
   - Création de vidéo highlights à partir des favoris
 
-- **Modes READY/LIVE**:
-  - LIVE: La vidéo démarre automatiquement lors du chargement
-  - READY: La vidéo est chargée mais attend un démarrage manuel (parfait pour Stream Deck)
+- **Mode READY**: La vidéo est chargée mais attend un démarrage manuel (parfait pour Stream Deck)
 
 ### Prérequis
 
@@ -355,9 +347,7 @@ Fortschrittliches Replay-Verwaltungssystem für OBS Studio mit integrierter Web-
   - Helle/dunkle Themen
   - Highlights-Video aus Favoriten erstellen
 
-- **READY/LIVE-Modi**:
-  - LIVE: Video startet automatisch beim Laden
-  - READY: Video wird geladen, wartet aber auf manuellen Start (perfekt für Stream Deck)
+- **READY-Modus**: Video wird geladen, wartet aber auf manuellen Start (perfekt für Stream Deck)
 
 ### Voraussetzungen
 
