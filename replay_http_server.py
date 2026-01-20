@@ -4007,8 +4007,30 @@ function renderVideoGrid(replays = allReplays) {
 }
 
 function updateCardBadges(card, replay) {
-    // Aggiorna badge READY
     const thumbnail = card.querySelector('.video-thumbnail');
+
+    // Aggiorna URL thumbnail e video (l'indice potrebbe essere cambiato)
+    const img = thumbnail.querySelector('img');
+    const video = thumbnail.querySelector('video');
+    const newThumbnailUrl = `/api/thumbnail/${replay.index}?t=${replay.modified}`;
+    const newVideoUrl = `/api/video/${replay.index}?t=${replay.modified}`;
+
+    if (img && !img.src.endsWith(newThumbnailUrl)) {
+        img.src = newThumbnailUrl;
+    }
+    if (video) {
+        const sources = video.querySelectorAll('source');
+        let needsReload = false;
+        sources.forEach(source => {
+            if (!source.src.endsWith(newVideoUrl)) {
+                source.src = newVideoUrl;
+                needsReload = true;
+            }
+        });
+        if (needsReload) {
+            video.load(); // Ricarica il video con le nuove sorgenti
+        }
+    }
 
     // Rimuovi badge READY esistente prima di aggiungere quello nuovo
     const existingReady = thumbnail.querySelector('.badge-ready');
@@ -4097,10 +4119,10 @@ function createVideoCard(replay) {
     return `
         <div class="video-card" data-path="${replay.path}" data-name="${replay.name}" oncontextmenu="showContextMenu(event, this); return false;">
             <div class="video-thumbnail">
-                <img src="/api/thumbnail/${replay.index}" alt="${replay.name}">
+                <img src="/api/thumbnail/${replay.index}?t=${replay.modified}" alt="${replay.name}">
                 <video muted loop preload="none">
-                    <source src="/api/video/${replay.index}" type="${replay.mime_type}">
-                    <source src="/api/video/${replay.index}">
+                    <source src="/api/video/${replay.index}?t=${replay.modified}" type="${replay.mime_type}">
+                    <source src="/api/video/${replay.index}?t=${replay.modified}">
                 </video>
                 ${statusBadge}
                 <div class="video-badges">
