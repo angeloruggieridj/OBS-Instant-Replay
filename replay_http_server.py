@@ -1775,14 +1775,16 @@ body {
     border: 1px solid var(--border-color);
     border-radius: 12px;
     overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     flex-direction: column;
+    contain: layout style paint;
+    will-change: transform;
 }
 
 .video-card:hover {
+    transform: translateY(-2px);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
-    border-color: var(--accent-primary);
 }
 
 .video-card:hover .video-thumbnail video {
@@ -3096,7 +3098,7 @@ body {
     <!-- Search Bar -->
     <div class="search-bar" id="search-bar">
         <div class="search-input-wrapper">
-            <input type="text" class="search-input" id="search-input" placeholder="Cerca per nome file..." oninput="filterVideos()">
+            <input type="text" class="search-input" id="search-input" placeholder="Cerca per nome file..." oninput="debouncedSearch()">
             <button class="search-clear-btn" onclick="clearSearch()">Cancella</button>
         </div>
     </div>
@@ -3519,7 +3521,21 @@ let cardZoom = 200;
 let draggedItem = null;
 let autoRefreshInterval = null;
 let statusRefreshInterval = null;
+let searchDebounceTimer = null;
 let playlistIsPlaying = false;
+
+// Utility: debounce function
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
 let playlistLoopEnabled = false;
 let currentQueueIndex = 0;
 
@@ -3800,7 +3816,16 @@ function toggleSearch() {
     }
 }
 
+// Debounced search per evitare troppi re-render
+function debouncedSearch() {
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+        filterVideos();
+    }, 150); // 150ms delay
+}
+
 function clearSearch() {
+    if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
     document.getElementById('search-input').value = '';
     currentFilter.search = '';
     filterVideos();
@@ -3964,19 +3989,18 @@ function renderVideoGrid(replays = allReplays) {
         return;
     }
 
-    // Ottieni le card esistenti
+    // Crea mappa delle card esistenti per lookup O(1)
     const existingCards = grid.querySelectorAll('.video-card');
-    const existingPaths = new Set();
+    const cardMap = new Map();
     existingCards.forEach(card => {
-        existingPaths.add(card.dataset.path);
+        cardMap.set(card.dataset.path, card);
     });
 
     // Costruisci set di path dei replay da mostrare
     const replayPaths = new Set(replays.map(r => r.path));
 
     // Rimuovi card non più presenti (con cleanup risorse)
-    existingCards.forEach(card => {
-        const cardPath = card.dataset.path;
+    cardMap.forEach((card, cardPath) => {
         if (!replayPaths.has(cardPath)) {
             // Cleanup video element per liberare memoria
             const video = card.querySelector('video');
@@ -3986,12 +4010,17 @@ function renderVideoGrid(replays = allReplays) {
                 video.load();
             }
             card.remove();
+            cardMap.delete(cardPath);
         }
     });
 
+    // Usa DocumentFragment per batch insert delle nuove card
+    const fragment = document.createDocumentFragment();
+    const newCards = [];
+
     // Aggiorna o crea card per ogni replay
     replays.forEach((replay, position) => {
-        const existingCard = grid.querySelector(`.video-card[data-path="${CSS.escape(replay.path)}"]`);
+        const existingCard = cardMap.get(replay.path);
 
         if (existingCard) {
             // Aggiorna solo i badge e le info, non ricreare il video
@@ -4001,20 +4030,24 @@ function renderVideoGrid(replays = allReplays) {
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = createVideoCard(replay);
             const newCard = tempDiv.firstElementChild;
-
-            // Inserisci nella posizione corretta
-            const children = grid.children;
-            if (position < children.length) {
-                grid.insertBefore(newCard, children[position]);
-            } else {
-                grid.appendChild(newCard);
-            }
+            newCards.push({ card: newCard, position, path: replay.path });
+            cardMap.set(replay.path, newCard);
         }
     });
 
-    // Riordina le card se necessario
+    // Inserisci tutte le nuove card in batch
+    newCards.forEach(({ card, position }) => {
+        const children = grid.children;
+        if (position < children.length) {
+            grid.insertBefore(card, children[position]);
+        } else {
+            grid.appendChild(card);
+        }
+    });
+
+    // Riordina le card se necessario (usando la mappa per lookup veloce)
     replays.forEach((replay, position) => {
-        const card = grid.querySelector(`.video-card[data-path="${CSS.escape(replay.path)}"]`);
+        const card = cardMap.get(replay.path);
         if (card && card !== grid.children[position]) {
             grid.insertBefore(card, grid.children[position]);
         }
@@ -4135,7 +4168,7 @@ function createVideoCard(replay) {
     return `
         <div class="video-card" data-path="${replay.path}" data-name="${replay.name}" oncontextmenu="showContextMenu(event, this); return false;">
             <div class="video-thumbnail">
-                <img src="/api/thumbnail/${replay.index}?t=${replay.modified}" alt="${replay.name}">
+                <img src="/api/thumbnail/${replay.index}?t=${replay.modified}" alt="${replay.name}" loading="lazy" decoding="async">
                 <video muted loop preload="none">
                     <source src="/api/video/${replay.index}?t=${replay.modified}" type="${replay.mime_type}">
                     <source src="/api/video/${replay.index}?t=${replay.modified}">
