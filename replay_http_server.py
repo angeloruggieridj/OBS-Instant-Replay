@@ -3518,6 +3518,7 @@ let currentTheme = 'default';
 let cardZoom = 200;
 let draggedItem = null;
 let autoRefreshInterval = null;
+let statusRefreshInterval = null;
 let playlistIsPlaying = false;
 let playlistLoopEnabled = false;
 let currentQueueIndex = 0;
@@ -3538,33 +3539,40 @@ async function init() {
 }
 
 function startAutoRefresh() {
-    const scanInterval = 3000; // 3 seconds per scan completo
-    const statusInterval = 1000; // 1 secondo per aggiornamento stato riproduzione
+    const scanInterval = 5000; // 5 secondi per scan completo (ridotto da 3s)
 
-    // Auto-refresh completo ogni 3 secondi (con scan)
-    if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+    // Pulisci intervalli esistenti per evitare memory leak
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+    }
+    if (statusRefreshInterval) {
+        clearInterval(statusRefreshInterval);
+        statusRefreshInterval = null;
+    }
+
+    // Auto-refresh completo ogni 5 secondi (con scan)
     autoRefreshInterval = setInterval(async () => {
-        // FORZA scan prima di ricaricare
-        await apiCall('/api/scan', 'POST');
-        await loadReplays();
+        try {
+            // FORZA scan prima di ricaricare
+            await apiCall('/api/scan', 'POST');
+            await loadReplays();
 
-        // Aggiorna orario scan nell'header
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString('it-IT', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        });
-        const lastScanElement = document.getElementById('last-scan-time');
-        if (lastScanElement) {
-            lastScanElement.textContent = timeStr;
+            // Aggiorna orario scan nell'header
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('it-IT', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            const lastScanElement = document.getElementById('last-scan-time');
+            if (lastScanElement) {
+                lastScanElement.textContent = timeStr;
+            }
+        } catch (e) {
+            console.error('[AutoRefresh] Error:', e);
         }
     }, scanInterval);
-
-    // Refresh leggero ogni secondo solo per stato riproduzione (senza scan)
-    setInterval(async () => {
-        await loadReplays();
-    }, statusInterval);
 }
 
 // ==================== API CALLS ====================
@@ -3966,10 +3974,17 @@ function renderVideoGrid(replays = allReplays) {
     // Costruisci set di path dei replay da mostrare
     const replayPaths = new Set(replays.map(r => r.path));
 
-    // Rimuovi card non più presenti
+    // Rimuovi card non più presenti (con cleanup risorse)
     existingCards.forEach(card => {
         const cardPath = card.dataset.path;
         if (!replayPaths.has(cardPath)) {
+            // Cleanup video element per liberare memoria
+            const video = card.querySelector('video');
+            if (video) {
+                video.pause();
+                video.src = '';
+                video.load();
+            }
             card.remove();
         }
     });
@@ -4027,8 +4042,9 @@ function updateCardBadges(card, replay) {
                 needsReload = true;
             }
         });
-        if (needsReload) {
-            video.load(); // Ricarica il video con le nuove sorgenti
+        // Ricarica solo se URL cambiato E video non in riproduzione (hover)
+        if (needsReload && video.paused) {
+            video.load();
         }
     }
 
