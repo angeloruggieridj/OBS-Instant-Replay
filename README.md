@@ -1,6 +1,6 @@
 # OBS Instant Replay
 
-[![Version](https://img.shields.io/badge/version-1.0--beta4-blue.svg)](https://github.com/angeloruggieridj/OBS-Instant-Replay/releases)
+[![Version](https://img.shields.io/badge/version-1.0--beta5-blue.svg)](https://github.com/angeloruggieridj/OBS-Instant-Replay/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [English](#english) | [Italiano](#italiano) | [Español](#español) | [Français](#français) | [Deutsch](#deutsch)
@@ -100,6 +100,24 @@ sudo dnf install ffmpeg
 4. Load videos directly into the configured media source
 5. Use right-click on video cards to assign categories
 
+### Keyboard Shortcuts (Hotkeys)
+
+The plugin registers 5 customizable hotkeys in OBS Studio:
+
+| Hotkey | Description |
+|--------|-------------|
+| Replay: Load Latest | Loads the most recent replay |
+| Replay: Load Second | Loads the second most recent replay |
+| Replay: Play/Pause | Toggles playback of current video |
+| Replay: Play Next | Plays next video in playlist |
+| Replay: Open Folder | Opens the replay folder |
+
+**To configure hotkeys:**
+1. Go to `File > Settings > Hotkeys`
+2. Search for "Replay"
+3. Click in the field and press your desired key combination
+4. Click "Apply"
+
 ### Main Files
 
 - `obs_replay_manager_browser.py`: Main OBS Studio script
@@ -190,6 +208,24 @@ sudo apt install ffmpeg
 4. Carica i video direttamente nella sorgente media configurata
 5. Usa il tasto destro sulle card per assegnare categorie
 
+### Scorciatoie da Tastiera (Hotkey)
+
+Il plugin registra 5 hotkey personalizzabili in OBS Studio:
+
+| Hotkey | Descrizione |
+|--------|-------------|
+| Replay: Carica Ultimo | Carica il replay più recente |
+| Replay: Carica Penultimo | Carica il secondo replay più recente |
+| Replay: Play/Pausa | Avvia/mette in pausa il video corrente |
+| Replay: Prossimo in Playlist | Riproduce il prossimo video in coda |
+| Replay: Apri Cartella | Apre la cartella dei replay |
+
+**Per configurare le hotkey:**
+1. Vai su `File > Impostazioni > Tasti rapidi`
+2. Cerca "Replay"
+3. Clicca nel campo e premi la combinazione di tasti desiderata
+4. Clicca "Applica"
+
 ---
 
 ## Español
@@ -256,6 +292,24 @@ sudo apt install ffmpeg
 3. En OBS Studio, ve a `Herramientas > Scripts`
 4. Haz clic en `+` y selecciona `obs_replay_manager_browser.py`
 5. Configura la carpeta de repeticiones en los ajustes del script
+
+### Atajos de Teclado (Hotkeys)
+
+El plugin registra 5 hotkeys personalizables en OBS Studio:
+
+| Hotkey | Descripción |
+|--------|-------------|
+| Replay: Load Latest | Carga la repetición más reciente |
+| Replay: Load Second | Carga la segunda repetición más reciente |
+| Replay: Play/Pause | Alterna reproducción/pausa del video actual |
+| Replay: Play Next | Reproduce el siguiente video en la lista |
+| Replay: Open Folder | Abre la carpeta de repeticiones |
+
+**Para configurar hotkeys:**
+1. Ve a `Archivo > Configuración > Teclas de acceso rápido`
+2. Busca "Replay"
+3. Haz clic en el campo y presiona la combinación de teclas deseada
+4. Haz clic en "Aplicar"
 
 ---
 
@@ -324,6 +378,24 @@ sudo apt install ffmpeg
 4. Cliquez sur `+` et sélectionnez `obs_replay_manager_browser.py`
 5. Configurez le dossier des replays dans les paramètres du script
 
+### Raccourcis Clavier (Hotkeys)
+
+Le plugin enregistre 5 raccourcis personnalisables dans OBS Studio:
+
+| Raccourci | Description |
+|-----------|-------------|
+| Replay: Load Latest | Charge le replay le plus récent |
+| Replay: Load Second | Charge le deuxième replay le plus récent |
+| Replay: Play/Pause | Bascule lecture/pause de la vidéo actuelle |
+| Replay: Play Next | Lit la vidéo suivante dans la liste |
+| Replay: Open Folder | Ouvre le dossier des replays |
+
+**Pour configurer les raccourcis:**
+1. Allez dans `Fichier > Paramètres > Raccourcis`
+2. Recherchez "Replay"
+3. Cliquez dans le champ et appuyez sur la combinaison de touches souhaitée
+4. Cliquez sur "Appliquer"
+
 ---
 
 ## Deutsch
@@ -391,6 +463,24 @@ sudo apt install ffmpeg
 4. Klicken Sie auf `+` und wählen Sie `obs_replay_manager_browser.py`
 5. Konfigurieren Sie den Replay-Ordner in den Skripteinstellungen
 
+### Tastenkürzel (Hotkeys)
+
+Das Plugin registriert 5 anpassbare Hotkeys in OBS Studio:
+
+| Hotkey | Beschreibung |
+|--------|--------------|
+| Replay: Load Latest | Lädt das neueste Replay |
+| Replay: Load Second | Lädt das zweitneueste Replay |
+| Replay: Play/Pause | Wechselt zwischen Wiedergabe und Pause |
+| Replay: Play Next | Spielt das nächste Video in der Liste |
+| Replay: Open Folder | Öffnet den Replay-Ordner |
+
+**Hotkeys konfigurieren:**
+1. Gehen Sie zu `Datei > Einstellungen > Tastenkürzel`
+2. Suchen Sie nach "Replay"
+3. Klicken Sie in das Feld und drücken Sie die gewünschte Tastenkombination
+4. Klicken Sie auf "Übernehmen"
+
 ---
 
 ## REST API
@@ -402,6 +492,7 @@ The HTTP server exposes various APIs for replay management:
 | `/api/replays` | GET | List all replays |
 | `/api/load` | POST | Load a replay in OBS |
 | `/api/delete` | POST | Delete a replay |
+| `/api/rename` | POST | Rename a replay file |
 | `/api/toggle-favorite` | POST | Add/remove from favorites |
 | `/api/queue/add` | POST | Add to queue |
 | `/api/queue/play-next` | POST | Play next in queue |

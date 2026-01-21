@@ -1,6 +1,6 @@
 """
 OBS Instant Replay - Server HTTP
-Versione: 1.0-beta4
+Versione: 1.0-beta5
 Repository: https://github.com/angeloruggieridj/OBS-Instant-Replay
 
 Funzionalità:
@@ -29,7 +29,7 @@ import subprocess
 import tempfile
 
 # Versione corrente
-VERSION = "1.0-beta4"
+VERSION = "1.0-beta5"
 GITHUB_REPO = "angeloruggieridj/OBS-Instant-Replay"
 GITHUB_RELEASES_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 GITHUB_ALL_RELEASES_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases"
@@ -58,6 +58,7 @@ card_zoom = 200  # Dimensione card (120-320px)
 current_playing_video = None  # Path del video attualmente in riproduzione
 current_ready_video = None  # Path del video caricato ma non avviato (READY)
 update_channel = "stable"  # Canale aggiornamenti: "stable" o "beta"
+current_language = "it"  # Lingua corrente: en, it, es, fr, de
 last_scan_time = None  # Timestamp dell'ultimo scan
 video_durations_cache = {}  # Cache delle durate video {path: seconds}
 highlights_files = []  # Lista dei file highlights creati
@@ -77,7 +78,7 @@ def load_persistent_data():
     global favorites, playlist_queue, categories, video_categories, hidden_videos
     global current_theme, card_zoom, current_speed, highlights_files
     global replay_folder, media_source_name, target_scene_name, auto_switch_scene
-    global filter_mask, refresh_interval_seconds, update_channel
+    global filter_mask, refresh_interval_seconds, update_channel, current_language
 
     if not DATA_FILE or not os.path.exists(DATA_FILE):
         return
@@ -96,6 +97,7 @@ def load_persistent_data():
         current_speed = data.get('current_speed', 1.0)
         highlights_files = data.get('highlights_files', [])
         update_channel = data.get('update_channel', 'stable')
+        current_language = data.get('current_language', 'it')
 
         # Impostazioni OBS
         replay_folder = data.get('replay_folder', '')
@@ -126,6 +128,7 @@ def save_persistent_data():
             'current_speed': current_speed,
             'highlights_files': highlights_files,
             'update_channel': update_channel,
+            'current_language': current_language,
             # Impostazioni OBS
             'replay_folder': replay_folder,
             'media_source_name': media_source_name,
@@ -140,6 +143,35 @@ def save_persistent_data():
 
     except Exception as e:
         print(f"[DATA] Errore salvataggio: {e}")
+
+
+def update_video_path_references(old_path, new_path):
+    """Aggiorna tutti i riferimenti quando un video viene rinominato"""
+    global favorites, hidden_videos, video_categories, playlist_queue, video_durations_cache
+
+    # Aggiorna favorites
+    if old_path in favorites:
+        favorites.remove(old_path)
+        favorites.add(new_path)
+
+    # Aggiorna hidden_videos
+    if old_path in hidden_videos:
+        hidden_videos.remove(old_path)
+        hidden_videos.add(new_path)
+
+    # Aggiorna video_categories
+    if old_path in video_categories:
+        video_categories[new_path] = video_categories.pop(old_path)
+
+    # Aggiorna playlist_queue
+    for item in playlist_queue:
+        if item.get('path') == old_path:
+            item['path'] = new_path
+            item['name'] = os.path.basename(new_path)
+
+    # Aggiorna duration cache
+    if old_path in video_durations_cache:
+        video_durations_cache[new_path] = video_durations_cache.pop(old_path)
 
 
 def check_for_updates():
@@ -698,7 +730,8 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                 'current_speed': current_speed,
                 'current_theme': current_theme,
                 'card_zoom': card_zoom,
-                'update_channel': update_channel
+                'update_channel': update_channel,
+                'current_language': current_language
             })
 
         elif path == '/api/scan':
@@ -832,6 +865,43 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                         self.send_json({'success': False, 'error': 'Errore eliminazione'})
                 else:
                     self.send_json({'success': False})
+
+            elif path == '/api/rename':
+                video_path = data.get('path', '')
+                new_name = data.get('newName', '').strip()
+
+                if not video_path or not os.path.exists(video_path):
+                    self.send_json({'success': False, 'error': 'File non trovato'})
+                elif not new_name:
+                    self.send_json({'success': False, 'error': 'Nome non valido'})
+                else:
+                    try:
+                        # Ottieni directory ed estensione
+                        dir_path = os.path.dirname(video_path)
+                        _, ext = os.path.splitext(video_path)
+
+                        # Assicura che il nuovo nome abbia l'estensione corretta
+                        if not new_name.lower().endswith(ext.lower()):
+                            new_name = new_name + ext
+
+                        new_path = os.path.join(dir_path, new_name)
+
+                        # Verifica se il file di destinazione esiste già
+                        if os.path.exists(new_path) and os.path.normpath(new_path) != os.path.normpath(video_path):
+                            self.send_json({'success': False, 'error': 'File con questo nome esiste già'})
+                        else:
+                            # Rinomina file su disco
+                            os.rename(video_path, new_path)
+
+                            # Aggiorna tutti i riferimenti
+                            update_video_path_references(video_path, new_path)
+
+                            # Rescan e salva
+                            scan_replay_folder()
+                            save_persistent_data()
+                            self.send_json({'success': True, 'newPath': new_path})
+                    except Exception as e:
+                        self.send_json({'success': False, 'error': f'Errore rinomina: {str(e)}'})
 
             elif path == '/api/toggle-favorite':
                 video_path = data.get('path', '')
@@ -1033,6 +1103,16 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                 current_theme = theme
                 save_persistent_data()
                 self.send_json({'success': True, 'theme': current_theme})
+
+            elif path == '/api/language':
+                global current_language
+                language = data.get('language', 'it')
+                if language in ('en', 'it', 'es', 'fr', 'de'):
+                    current_language = language
+                    save_persistent_data()
+                    self.send_json({'success': True, 'language': current_language})
+                else:
+                    self.send_json({'success': False, 'error': 'Lingua non supportata'})
 
             elif path == '/api/update-channel':
                 global update_channel
@@ -3289,6 +3369,23 @@ body {
                 </div>
 
                 <div class="settings-section">
+                    <div class="settings-section-title">🌐 Lingua / Language</div>
+                    <div class="settings-item">
+                        <div>
+                            <div class="settings-item-label">Lingua interfaccia</div>
+                            <div class="settings-item-description">Interface language</div>
+                        </div>
+                        <select id="language-select" class="settings-input" onchange="setLanguage(this.value)" style="width: 120px;">
+                            <option value="en">English</option>
+                            <option value="it" selected>Italiano</option>
+                            <option value="es">Español</option>
+                            <option value="fr">Français</option>
+                            <option value="de">Deutsch</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-section">
                     <div class="settings-section-title">Filtri</div>
                     <div class="settings-item">
                         <div>
@@ -3504,6 +3601,563 @@ body {
 
 <!-- ==================== JAVASCRIPT ==================== -->
 <script>
+// ==================== INTERNATIONALIZATION (i18n) ====================
+const translations = {
+    en: {
+        // Context Menu
+        addToFavorites: 'Add to favorites',
+        removeFromFavorites: 'Remove from favorites',
+        addToPlaylist: 'Add to playlist',
+        rename: 'Rename',
+        category: 'Category',
+        none: 'None',
+        noCategoriesCreated: 'No categories created',
+        // Notifications
+        addedToFavorites: 'Added to favorites',
+        removedFromFavorites: 'Removed from favorites',
+        addedToQueue: 'Added to queue',
+        alreadyInQueue: 'Video already in queue',
+        videoLoaded: 'Video loaded (ready to play)',
+        videoLoadedSpeed: 'Video loaded at speed',
+        videoHidden: 'Video hidden',
+        videoDeleted: 'Video deleted',
+        videoRenamed: 'Video renamed',
+        renameError: 'Rename error',
+        categoryAssigned: 'Category assigned',
+        categoryRemoved: 'Category removed',
+        categoryRenamed: 'Category renamed',
+        categoryDeleted: 'Category deleted',
+        colorUpdated: 'Color updated',
+        errorUpdatingColor: 'Error updating color',
+        duplicateOrInvalidName: 'Duplicate or invalid name',
+        // Playlist
+        playlistEmpty: 'Empty playlist',
+        addVideosFromGrid: 'Add videos from grid',
+        playlistStarted: 'Playlist started',
+        playlistCompleted: 'Playlist completed',
+        playlistStopped: 'Playlist stopped',
+        playlistShuffled: 'Playlist shuffled',
+        playlistCleared: 'Playlist cleared',
+        removedFromQueue: 'Removed from queue',
+        loopEnabled: 'Loop enabled',
+        loopDisabled: 'Loop disabled',
+        nowPlaying: 'Now playing',
+        playbackQueue: 'Playback Queue',
+        createHighlightsFromQueue: 'Create Highlights from queue',
+        // Settings
+        settings: 'Settings',
+        general: 'General',
+        language: 'Language',
+        obsConfiguration: 'OBS Configuration',
+        replayFolder: 'Replay Folder',
+        browse: 'Browse',
+        openFolder: 'Open folder',
+        mediaSourceName: 'Media Source Name',
+        targetScene: 'Target Scene',
+        autoSwitchScene: 'Auto-switch scene',
+        filters: 'Filters',
+        fileNameFilter: 'File name filter',
+        filterPlaceholder: 'e.g.: Replay',
+        backupConfiguration: 'Backup Configuration',
+        export: 'Export',
+        import: 'Import',
+        // UI Labels
+        favorites: 'Favorites',
+        inQueue: 'In queue',
+        categories: 'Categories',
+        search: 'Search',
+        searchPlaceholder: 'Search by file name...',
+        clear: 'Clear',
+        videos: 'videos',
+        hiddenVideos: 'Hidden Videos',
+        showAll: 'Show all',
+        noHiddenVideos: 'No hidden videos',
+        hiddenVideosWillAppear: 'Hidden videos will appear here',
+        // Playlist Modal
+        playlist: 'Playlist / Queue',
+        videosInQueue: 'videos',
+        totalDuration: 'Total duration',
+        play: 'Play',
+        stop: 'Stop',
+        loop: 'Loop',
+        shuffle: 'Shuffle',
+        empty: 'Empty',
+        // Category Dialog
+        newCategoryName: 'New category name:',
+        renamePrompt: 'New name for the video:',
+        deleteCategory: 'Delete category',
+        renameCategory: 'Rename',
+        changeColor: 'Change color',
+        confirmDeleteCategory: 'Delete category',
+        // Themes
+        themes: 'Themes',
+        about: 'About',
+        // Tooltips
+        favorite: 'Favorite',
+        loadInOBS: 'Load in OBS',
+        addToQueue: 'Add to queue',
+        // Speed
+        speedLabel: 'Speed',
+        // Updates
+        checkingUpdates: 'Checking...',
+        checkUpdates: 'Check Updates',
+        // Errors
+        serverError: 'Server communication error',
+        errorDeleting: 'Error deleting',
+        errorRenaming: 'Error renaming',
+        fileNotFound: 'File not found'
+    },
+    it: {
+        // Context Menu
+        addToFavorites: 'Aggiungi a preferiti',
+        removeFromFavorites: 'Rimuovi da preferiti',
+        addToPlaylist: 'Aggiungi a playlist',
+        rename: 'Rinomina',
+        category: 'Categoria',
+        none: 'Nessuna',
+        noCategoriesCreated: 'Nessuna categoria creata',
+        // Notifications
+        addedToFavorites: 'Aggiunto ai preferiti',
+        removedFromFavorites: 'Rimosso dai preferiti',
+        addedToQueue: 'Aggiunto alla coda',
+        alreadyInQueue: 'Video già in coda',
+        videoLoaded: 'Video caricato (pronto per avvio)',
+        videoLoadedSpeed: 'Video caricato a velocità',
+        videoHidden: 'Video nascosto',
+        videoDeleted: 'Video eliminato',
+        videoRenamed: 'Video rinominato',
+        renameError: 'Errore nella rinomina',
+        categoryAssigned: 'Categoria assegnata',
+        categoryRemoved: 'Categoria rimossa',
+        categoryRenamed: 'Categoria rinominata',
+        categoryDeleted: 'Categoria eliminata',
+        colorUpdated: 'Colore aggiornato',
+        errorUpdatingColor: 'Errore aggiornamento colore',
+        duplicateOrInvalidName: 'Nome duplicato o non valido',
+        // Playlist
+        playlistEmpty: 'Coda vuota',
+        addVideosFromGrid: 'Aggiungi video dalla griglia',
+        playlistStarted: 'Playlist avviata',
+        playlistCompleted: 'Playlist completata',
+        playlistStopped: 'Playlist fermata',
+        playlistShuffled: 'Playlist mescolata',
+        playlistCleared: 'Coda svuotata',
+        removedFromQueue: 'Rimosso dalla coda',
+        loopEnabled: 'Loop attivato',
+        loopDisabled: 'Loop disattivato',
+        nowPlaying: 'In riproduzione',
+        playbackQueue: 'Coda Riproduzione',
+        createHighlightsFromQueue: 'Crea Highlights dalla coda',
+        // Settings
+        settings: 'Impostazioni',
+        general: 'Generale',
+        language: 'Lingua',
+        obsConfiguration: 'Configurazione OBS',
+        replayFolder: 'Cartella Replay',
+        browse: 'Sfoglia',
+        openFolder: 'Apri cartella',
+        mediaSourceName: 'Nome Sorgente Media',
+        targetScene: 'Scena Target',
+        autoSwitchScene: 'Cambia scena automaticamente',
+        filters: 'Filtri',
+        fileNameFilter: 'Filtro nome file',
+        filterPlaceholder: 'es: Replay',
+        backupConfiguration: 'Backup Configurazione',
+        export: 'Esporta',
+        import: 'Importa',
+        // UI Labels
+        favorites: 'Preferiti',
+        inQueue: 'In coda',
+        categories: 'Categorie',
+        search: 'Cerca',
+        searchPlaceholder: 'Cerca per nome file...',
+        clear: 'Cancella',
+        videos: 'video',
+        hiddenVideos: 'Video Nascosti',
+        showAll: 'Mostra tutti',
+        noHiddenVideos: 'Nessun video nascosto',
+        hiddenVideosWillAppear: 'I video nascosti appariranno qui',
+        // Playlist Modal
+        playlist: 'Playlist / Coda',
+        videosInQueue: 'video',
+        totalDuration: 'Durata totale',
+        play: 'Play',
+        stop: 'Stop',
+        loop: 'Loop',
+        shuffle: 'Mescola',
+        empty: 'Svuota',
+        // Category Dialog
+        newCategoryName: 'Nuovo nome categoria:',
+        renamePrompt: 'Nuovo nome per il video:',
+        deleteCategory: 'Elimina categoria',
+        renameCategory: 'Rinomina',
+        changeColor: 'Cambia colore',
+        confirmDeleteCategory: 'Eliminare la categoria',
+        // Themes
+        themes: 'Temi',
+        about: 'Info',
+        // Tooltips
+        favorite: 'Preferito',
+        loadInOBS: 'Carica in OBS',
+        addToQueue: 'Aggiungi a coda',
+        // Speed
+        speedLabel: 'Velocità',
+        // Updates
+        checkingUpdates: 'Verificando...',
+        checkUpdates: 'Verifica aggiornamenti',
+        // Errors
+        serverError: 'Errore comunicazione server',
+        errorDeleting: 'Errore eliminazione',
+        errorRenaming: 'Errore rinomina',
+        fileNotFound: 'File non trovato'
+    },
+    es: {
+        // Context Menu
+        addToFavorites: 'Agregar a favoritos',
+        removeFromFavorites: 'Quitar de favoritos',
+        addToPlaylist: 'Agregar a playlist',
+        rename: 'Renombrar',
+        category: 'Categoría',
+        none: 'Ninguna',
+        noCategoriesCreated: 'No hay categorías creadas',
+        // Notifications
+        addedToFavorites: 'Agregado a favoritos',
+        removedFromFavorites: 'Quitado de favoritos',
+        addedToQueue: 'Agregado a la cola',
+        alreadyInQueue: 'Video ya está en cola',
+        videoLoaded: 'Video cargado (listo para reproducir)',
+        videoLoadedSpeed: 'Video cargado a velocidad',
+        videoHidden: 'Video oculto',
+        videoDeleted: 'Video eliminado',
+        videoRenamed: 'Video renombrado',
+        renameError: 'Error al renombrar',
+        categoryAssigned: 'Categoría asignada',
+        categoryRemoved: 'Categoría eliminada',
+        categoryRenamed: 'Categoría renombrada',
+        categoryDeleted: 'Categoría eliminada',
+        colorUpdated: 'Color actualizado',
+        errorUpdatingColor: 'Error actualizando color',
+        duplicateOrInvalidName: 'Nombre duplicado o inválido',
+        // Playlist
+        playlistEmpty: 'Cola vacía',
+        addVideosFromGrid: 'Agregar videos desde la cuadrícula',
+        playlistStarted: 'Playlist iniciada',
+        playlistCompleted: 'Playlist completada',
+        playlistStopped: 'Playlist detenida',
+        playlistShuffled: 'Playlist mezclada',
+        playlistCleared: 'Cola vaciada',
+        removedFromQueue: 'Eliminado de la cola',
+        loopEnabled: 'Bucle activado',
+        loopDisabled: 'Bucle desactivado',
+        nowPlaying: 'Reproduciendo',
+        playbackQueue: 'Cola de Reproducción',
+        createHighlightsFromQueue: 'Crear Highlights desde la cola',
+        // Settings
+        settings: 'Configuración',
+        general: 'General',
+        language: 'Idioma',
+        obsConfiguration: 'Configuración OBS',
+        replayFolder: 'Carpeta de Replays',
+        browse: 'Explorar',
+        openFolder: 'Abrir carpeta',
+        mediaSourceName: 'Nombre Fuente Media',
+        targetScene: 'Escena Destino',
+        autoSwitchScene: 'Cambiar escena automáticamente',
+        filters: 'Filtros',
+        fileNameFilter: 'Filtro nombre archivo',
+        filterPlaceholder: 'ej: Replay',
+        backupConfiguration: 'Backup Configuración',
+        export: 'Exportar',
+        import: 'Importar',
+        // UI Labels
+        favorites: 'Favoritos',
+        inQueue: 'En cola',
+        categories: 'Categorías',
+        search: 'Buscar',
+        searchPlaceholder: 'Buscar por nombre de archivo...',
+        clear: 'Limpiar',
+        videos: 'videos',
+        hiddenVideos: 'Videos Ocultos',
+        showAll: 'Mostrar todos',
+        noHiddenVideos: 'No hay videos ocultos',
+        hiddenVideosWillAppear: 'Los videos ocultos aparecerán aquí',
+        // Playlist Modal
+        playlist: 'Playlist / Cola',
+        videosInQueue: 'videos',
+        totalDuration: 'Duración total',
+        play: 'Play',
+        stop: 'Stop',
+        loop: 'Bucle',
+        shuffle: 'Mezclar',
+        empty: 'Vaciar',
+        // Category Dialog
+        newCategoryName: 'Nuevo nombre de categoría:',
+        renamePrompt: 'Nuevo nombre para el video:',
+        deleteCategory: 'Eliminar categoría',
+        renameCategory: 'Renombrar',
+        changeColor: 'Cambiar color',
+        confirmDeleteCategory: 'Eliminar la categoría',
+        // Themes
+        themes: 'Temas',
+        about: 'Acerca de',
+        // Tooltips
+        favorite: 'Favorito',
+        loadInOBS: 'Cargar en OBS',
+        addToQueue: 'Agregar a cola',
+        // Speed
+        speedLabel: 'Velocidad',
+        // Updates
+        checkingUpdates: 'Verificando...',
+        checkUpdates: 'Buscar actualizaciones',
+        // Errors
+        serverError: 'Error de comunicación con servidor',
+        errorDeleting: 'Error al eliminar',
+        errorRenaming: 'Error al renombrar',
+        fileNotFound: 'Archivo no encontrado'
+    },
+    fr: {
+        // Context Menu
+        addToFavorites: 'Ajouter aux favoris',
+        removeFromFavorites: 'Retirer des favoris',
+        addToPlaylist: 'Ajouter à la playlist',
+        rename: 'Renommer',
+        category: 'Catégorie',
+        none: 'Aucune',
+        noCategoriesCreated: 'Aucune catégorie créée',
+        // Notifications
+        addedToFavorites: 'Ajouté aux favoris',
+        removedFromFavorites: 'Retiré des favoris',
+        addedToQueue: 'Ajouté à la file',
+        alreadyInQueue: 'Vidéo déjà dans la file',
+        videoLoaded: 'Vidéo chargée (prête à jouer)',
+        videoLoadedSpeed: 'Vidéo chargée à la vitesse',
+        videoHidden: 'Vidéo masquée',
+        videoDeleted: 'Vidéo supprimée',
+        videoRenamed: 'Vidéo renommée',
+        renameError: 'Erreur de renommage',
+        categoryAssigned: 'Catégorie attribuée',
+        categoryRemoved: 'Catégorie supprimée',
+        categoryRenamed: 'Catégorie renommée',
+        categoryDeleted: 'Catégorie supprimée',
+        colorUpdated: 'Couleur mise à jour',
+        errorUpdatingColor: 'Erreur mise à jour couleur',
+        duplicateOrInvalidName: 'Nom en double ou invalide',
+        // Playlist
+        playlistEmpty: 'File vide',
+        addVideosFromGrid: 'Ajouter des vidéos depuis la grille',
+        playlistStarted: 'Playlist démarrée',
+        playlistCompleted: 'Playlist terminée',
+        playlistStopped: 'Playlist arrêtée',
+        playlistShuffled: 'Playlist mélangée',
+        playlistCleared: 'File vidée',
+        removedFromQueue: 'Retiré de la file',
+        loopEnabled: 'Boucle activée',
+        loopDisabled: 'Boucle désactivée',
+        nowPlaying: 'En lecture',
+        playbackQueue: 'File de lecture',
+        createHighlightsFromQueue: 'Créer Highlights depuis la file',
+        // Settings
+        settings: 'Paramètres',
+        general: 'Général',
+        language: 'Langue',
+        obsConfiguration: 'Configuration OBS',
+        replayFolder: 'Dossier Replays',
+        browse: 'Parcourir',
+        openFolder: 'Ouvrir dossier',
+        mediaSourceName: 'Nom Source Média',
+        targetScene: 'Scène Cible',
+        autoSwitchScene: 'Changer de scène automatiquement',
+        filters: 'Filtres',
+        fileNameFilter: 'Filtre nom fichier',
+        filterPlaceholder: 'ex: Replay',
+        backupConfiguration: 'Sauvegarde Configuration',
+        export: 'Exporter',
+        import: 'Importer',
+        // UI Labels
+        favorites: 'Favoris',
+        inQueue: 'Dans la file',
+        categories: 'Catégories',
+        search: 'Rechercher',
+        searchPlaceholder: 'Rechercher par nom de fichier...',
+        clear: 'Effacer',
+        videos: 'vidéos',
+        hiddenVideos: 'Vidéos Masquées',
+        showAll: 'Afficher tout',
+        noHiddenVideos: 'Aucune vidéo masquée',
+        hiddenVideosWillAppear: 'Les vidéos masquées apparaîtront ici',
+        // Playlist Modal
+        playlist: 'Playlist / File',
+        videosInQueue: 'vidéos',
+        totalDuration: 'Durée totale',
+        play: 'Lecture',
+        stop: 'Arrêt',
+        loop: 'Boucle',
+        shuffle: 'Mélanger',
+        empty: 'Vider',
+        // Category Dialog
+        newCategoryName: 'Nouveau nom de catégorie:',
+        renamePrompt: 'Nouveau nom pour la vidéo:',
+        deleteCategory: 'Supprimer catégorie',
+        renameCategory: 'Renommer',
+        changeColor: 'Changer couleur',
+        confirmDeleteCategory: 'Supprimer la catégorie',
+        // Themes
+        themes: 'Thèmes',
+        about: 'À propos',
+        // Tooltips
+        favorite: 'Favori',
+        loadInOBS: 'Charger dans OBS',
+        addToQueue: 'Ajouter à la file',
+        // Speed
+        speedLabel: 'Vitesse',
+        // Updates
+        checkingUpdates: 'Vérification...',
+        checkUpdates: 'Vérifier mises à jour',
+        // Errors
+        serverError: 'Erreur de communication serveur',
+        errorDeleting: 'Erreur suppression',
+        errorRenaming: 'Erreur renommage',
+        fileNotFound: 'Fichier non trouvé'
+    },
+    de: {
+        // Context Menu
+        addToFavorites: 'Zu Favoriten hinzufügen',
+        removeFromFavorites: 'Aus Favoriten entfernen',
+        addToPlaylist: 'Zur Playlist hinzufügen',
+        rename: 'Umbenennen',
+        category: 'Kategorie',
+        none: 'Keine',
+        noCategoriesCreated: 'Keine Kategorien erstellt',
+        // Notifications
+        addedToFavorites: 'Zu Favoriten hinzugefügt',
+        removedFromFavorites: 'Aus Favoriten entfernt',
+        addedToQueue: 'Zur Warteschlange hinzugefügt',
+        alreadyInQueue: 'Video bereits in Warteschlange',
+        videoLoaded: 'Video geladen (bereit zum Abspielen)',
+        videoLoadedSpeed: 'Video geladen mit Geschwindigkeit',
+        videoHidden: 'Video ausgeblendet',
+        videoDeleted: 'Video gelöscht',
+        videoRenamed: 'Video umbenannt',
+        renameError: 'Fehler beim Umbenennen',
+        categoryAssigned: 'Kategorie zugewiesen',
+        categoryRemoved: 'Kategorie entfernt',
+        categoryRenamed: 'Kategorie umbenannt',
+        categoryDeleted: 'Kategorie gelöscht',
+        colorUpdated: 'Farbe aktualisiert',
+        errorUpdatingColor: 'Fehler beim Aktualisieren der Farbe',
+        duplicateOrInvalidName: 'Doppelter oder ungültiger Name',
+        // Playlist
+        playlistEmpty: 'Warteschlange leer',
+        addVideosFromGrid: 'Videos aus dem Raster hinzufügen',
+        playlistStarted: 'Playlist gestartet',
+        playlistCompleted: 'Playlist abgeschlossen',
+        playlistStopped: 'Playlist gestoppt',
+        playlistShuffled: 'Playlist gemischt',
+        playlistCleared: 'Warteschlange geleert',
+        removedFromQueue: 'Aus Warteschlange entfernt',
+        loopEnabled: 'Schleife aktiviert',
+        loopDisabled: 'Schleife deaktiviert',
+        nowPlaying: 'Jetzt läuft',
+        playbackQueue: 'Wiedergabe-Warteschlange',
+        createHighlightsFromQueue: 'Highlights aus Warteschlange erstellen',
+        // Settings
+        settings: 'Einstellungen',
+        general: 'Allgemein',
+        language: 'Sprache',
+        obsConfiguration: 'OBS-Konfiguration',
+        replayFolder: 'Replay-Ordner',
+        browse: 'Durchsuchen',
+        openFolder: 'Ordner öffnen',
+        mediaSourceName: 'Medienquelle Name',
+        targetScene: 'Zielszene',
+        autoSwitchScene: 'Szene automatisch wechseln',
+        filters: 'Filter',
+        fileNameFilter: 'Dateiname-Filter',
+        filterPlaceholder: 'z.B.: Replay',
+        backupConfiguration: 'Backup-Konfiguration',
+        export: 'Exportieren',
+        import: 'Importieren',
+        // UI Labels
+        favorites: 'Favoriten',
+        inQueue: 'In Warteschlange',
+        categories: 'Kategorien',
+        search: 'Suchen',
+        searchPlaceholder: 'Nach Dateinamen suchen...',
+        clear: 'Löschen',
+        videos: 'Videos',
+        hiddenVideos: 'Ausgeblendete Videos',
+        showAll: 'Alle anzeigen',
+        noHiddenVideos: 'Keine ausgeblendeten Videos',
+        hiddenVideosWillAppear: 'Ausgeblendete Videos werden hier angezeigt',
+        // Playlist Modal
+        playlist: 'Playlist / Warteschlange',
+        videosInQueue: 'Videos',
+        totalDuration: 'Gesamtdauer',
+        play: 'Abspielen',
+        stop: 'Stopp',
+        loop: 'Schleife',
+        shuffle: 'Mischen',
+        empty: 'Leeren',
+        // Category Dialog
+        newCategoryName: 'Neuer Kategoriename:',
+        renamePrompt: 'Neuer Name für das Video:',
+        deleteCategory: 'Kategorie löschen',
+        renameCategory: 'Umbenennen',
+        changeColor: 'Farbe ändern',
+        confirmDeleteCategory: 'Kategorie löschen',
+        // Themes
+        themes: 'Themen',
+        about: 'Über',
+        // Tooltips
+        favorite: 'Favorit',
+        loadInOBS: 'In OBS laden',
+        addToQueue: 'Zur Warteschlange',
+        // Speed
+        speedLabel: 'Geschwindigkeit',
+        // Updates
+        checkingUpdates: 'Überprüfen...',
+        checkUpdates: 'Nach Updates suchen',
+        // Errors
+        serverError: 'Server-Kommunikationsfehler',
+        errorDeleting: 'Fehler beim Löschen',
+        errorRenaming: 'Fehler beim Umbenennen',
+        fileNotFound: 'Datei nicht gefunden'
+    }
+};
+
+let currentLanguage = 'it'; // Default Italian
+
+function t(key) {
+    return translations[currentLanguage]?.[key] || translations['en']?.[key] || key;
+}
+
+async function setLanguage(lang) {
+    if (translations[lang]) {
+        currentLanguage = lang;
+        document.getElementById('language-select').value = lang;
+        await apiCall('/api/language', 'POST', { language: lang });
+        updateUILanguage();
+    }
+}
+
+function updateUILanguage() {
+    // Update elements with data-i18n attribute
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        el.textContent = t(key);
+    });
+
+    // Update placeholders
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        el.placeholder = t(key);
+    });
+
+    // Re-render dynamic content
+    loadReplays();
+    loadPlaylist();
+}
+
 // ==================== GLOBAL STATE ====================
 let allReplays = [];
 let currentFilter = {
@@ -3620,6 +4274,13 @@ async function loadConfig() {
         currentSpeed = data.current_speed || 1.0;
         currentTheme = data.current_theme || 'default';
         cardZoom = data.card_zoom || 200;
+
+        // Load language
+        const lang = data.current_language || 'it';
+        if (translations[lang]) {
+            currentLanguage = lang;
+            document.getElementById('language-select').value = lang;
+        }
 
         // Apply loaded config
         document.body.setAttribute('data-theme', currentTheme);
@@ -4201,7 +4862,7 @@ async function toggleFavorite(path) {
     const result = await apiCall('/api/toggle-favorite', 'POST', { path });
     if (result && result.success) {
         await loadReplays();
-        showNotification(result.favorite ? 'Aggiunto ai preferiti' : 'Rimosso dai preferiti', 'success');
+        showNotification(result.favorite ? t('addedToFavorites') : t('removedFromFavorites'), 'success');
     }
 }
 
@@ -4209,37 +4870,35 @@ async function addToQueue(path) {
     const result = await apiCall('/api/queue/add', 'POST', { path });
     if (result && result.success) {
         await loadReplays();
-        showNotification('Aggiunto alla coda', 'success');
+        showNotification(t('addedToQueue'), 'success');
     } else if (result && result.error === 'Already in queue') {
-        showNotification('Video già in coda', 'warning');
+        showNotification(t('alreadyInQueue'), 'warning');
     }
 }
 
 async function loadVideo(path) {
     const result = await apiCall('/api/load', 'POST', { path });
     if (result && result.success) {
-        showNotification('Video caricato (pronto per avvio)', 'success');
+        showNotification(t('videoLoaded'), 'success');
         // Forza refresh immediato per mostrare badge
         await loadReplays();
     }
 }
 
 async function hideVideo(path) {
-    if (confirm('Nascondere questo video?')) {
-        const result = await apiCall('/api/hide', 'POST', { path });
-        if (result && result.success) {
-            await loadReplays();
-            showNotification('Video nascosto', 'success');
-        }
+    const result = await apiCall('/api/hide', 'POST', { path });
+    if (result && result.success) {
+        await loadReplays();
+        showNotification(t('videoHidden'), 'success');
     }
 }
 
 async function deleteVideo(path, name) {
-    if (confirm(`Eliminare definitivamente "${name}"?`)) {
+    if (confirm(`${t('deleteCategory')} "${name}"?`)) {
         const result = await apiCall('/api/delete', 'POST', { path });
         if (result && result.success) {
             await loadReplays();
-            showNotification('Video eliminato', 'success');
+            showNotification(t('videoDeleted'), 'success');
         }
     }
 }
@@ -4247,11 +4906,31 @@ async function deleteVideo(path, name) {
 async function setVideoSpeed(path, speed) {
     await loadVideo(path);
     await setGlobalSpeed(speed);
-    showNotification(`Video caricato a velocità ${speed}x`, 'success');
+    showNotification(`${t('videoLoadedSpeed')} ${speed}x`, 'success');
 }
 
 // ==================== CONTEXT MENU FUNCTIONS ====================
 let contextMenuPath = '';
+
+async function renameVideo(path, currentName) {
+    // Rimuovi estensione per il prompt
+    const nameWithoutExt = currentName.replace(/\\.[^/.]+$/, '');
+    const ext = currentName.slice(nameWithoutExt.length);
+
+    const newName = prompt(t('renamePrompt'), nameWithoutExt);
+    if (newName && newName.trim() && newName.trim() !== nameWithoutExt) {
+        const result = await apiCall('/api/rename', 'POST', {
+            path: path,
+            newName: newName.trim() + ext
+        });
+        if (result && result.success) {
+            await loadReplays();
+            showNotification(t('videoRenamed'), 'success');
+        } else {
+            showNotification(result?.error || t('renameError'), 'error');
+        }
+    }
+}
 
 function showContextMenu(event, cardElement) {
     event.preventDefault();
@@ -4281,25 +4960,32 @@ function showContextMenu(event, cardElement) {
     // Favorite action
     html += `<div class="context-menu-item ${isFav ? 'active' : ''}" onclick="toggleFavorite('${escapedPath}'); hideContextMenu();">`;
     html += `<span class="menu-icon">${isFav ? '★' : '☆'}</span>`;
-    html += `<span>${isFav ? 'Rimuovi da preferiti' : 'Aggiungi a preferiti'}</span>`;
+    html += `<span>${isFav ? t('removeFromFavorites') : t('addToFavorites')}</span>`;
     html += `</div>`;
 
     // Add to queue
     html += `<div class="context-menu-item" onclick="addToQueue('${escapedPath}'); hideContextMenu();">`;
     html += `<span class="menu-icon">📋</span>`;
-    html += `<span>Aggiungi a playlist</span>`;
+    html += `<span>${t('addToPlaylist')}</span>`;
+    html += `</div>`;
+
+    // Rename video
+    const escapedName = replay.name.replace(/'/g, "\\\\'");
+    html += `<div class="context-menu-item" onclick="renameVideo('${escapedPath}', '${escapedName}'); hideContextMenu();">`;
+    html += `<span class="menu-icon">✏️</span>`;
+    html += `<span>${t('rename')}</span>`;
     html += `</div>`;
 
     html += `<div class="context-menu-separator"></div>`;
 
     // Category header
-    html += `<div class="context-menu-header">Categoria</div>`;
+    html += `<div class="context-menu-header">${t('category')}</div>`;
 
     // No category option
     const noCategory = !replay.category;
     html += `<div class="context-menu-category ${noCategory ? 'selected' : ''}" onclick="assignCategory('${escapedPath}', null); hideContextMenu();">`;
     html += `<span class="category-dot" style="background: #555;"></span>`;
-    html += `<span>Nessuna</span>`;
+    html += `<span>${t('none')}</span>`;
     if (noCategory) html += `<span class="category-check">✓</span>`;
     html += `</div>`;
 
@@ -4315,7 +5001,7 @@ function showContextMenu(event, cardElement) {
     });
 
     if (Object.keys(categories).length === 0) {
-        html += `<div style="padding: 8px 14px; color: var(--text-secondary); font-size: 12px; font-style: italic;">Nessuna categoria creata</div>`;
+        html += `<div style="padding: 8px 14px; color: var(--text-secondary); font-size: 12px; font-style: italic;">${t('noCategoriesCreated')}</div>`;
     }
 
     menu.innerHTML = html;
@@ -4368,7 +5054,7 @@ async function assignCategory(videoPath, categoryName) {
 
     if (result && result.success) {
         await loadReplays();
-        showNotification(categoryName ? `Categoria assegnata: ${categoryName}` : 'Categoria rimossa', 'success');
+        showNotification(categoryName ? `${t('categoryAssigned')}: ${categoryName}` : t('categoryRemoved'), 'success');
     }
     hideContextMenu();
 }
