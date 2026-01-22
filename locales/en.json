@@ -93,7 +93,9 @@
     "showAll": "Show all",
     "noHiddenVideos": "No hidden videos",
     "hiddenVideosWillAppear": "Hidden videos will appear here",
-    "all": "All"
+    "all": "All",
+    "noVideosFound": "No videos found",
+    "checkFiltersOrAddReplays": "Check filters or add new replays"
   },
   "controls": {
     "play": "Play",

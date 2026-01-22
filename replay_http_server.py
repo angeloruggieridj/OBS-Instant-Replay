@@ -3577,8 +3577,8 @@ body {
 
             <div class="empty-state" id="hidden-empty" style="display: none;">
                 <div class="empty-state-icon">👁️</div>
-                <div class="empty-state-text">Nessun video nascosto</div>
-                <div class="empty-state-subtext">I video nascosti appariranno qui</div>
+                <div class="empty-state-text" data-i18n="ui.noHiddenVideos">Nessun video nascosto</div>
+                <div class="empty-state-subtext" data-i18n="ui.hiddenVideosWillAppear">I video nascosti appariranno qui</div>
             </div>
         </div>
     </div>
@@ -3587,7 +3587,7 @@ body {
 <!-- ==================== BOTTOM BAR ==================== -->
 <div class="bottom-bar">
     <div class="speed-control">
-        <span class="speed-label">Velocità:</span>
+        <span class="speed-label" data-i18n="speed.label">Velocità:</span>
         <div class="speed-buttons">
             <button class="speed-button" data-speed="0.5" onclick="setGlobalSpeed(0.5)">0.5x</button>
             <button class="speed-button active" data-speed="1" onclick="setGlobalSpeed(1)">1x</button>
@@ -4227,8 +4227,8 @@ function renderVideoGrid(replays = allReplays) {
         grid.innerHTML = `
             <div class="empty-state" style="grid-column: 1 / -1;">
                 <div class="empty-state-icon">📹</div>
-                <div class="empty-state-text">Nessun video trovato</div>
-                <div class="empty-state-subtext">Controlla i filtri o aggiungi nuovi replay</div>
+                <div class="empty-state-text">${t('ui.noVideosFound')}</div>
+                <div class="empty-state-subtext">${t('ui.checkFiltersOrAddReplays')}</div>
             </div>
         `;
         return;
@@ -4434,9 +4434,9 @@ function createVideoCard(replay) {
             </div>
 
             <div class="video-actions">
-                <button class="video-action-btn ${replay.favorite ? 'active' : ''}" onclick="toggleFavorite('${escapedPath}')" title="Preferito">⭐</button>
-                <button class="video-action-btn" onclick="loadVideo('${escapedPath}')" title="Carica in OBS">▶️</button>
-                <button class="video-action-btn" onclick="addToQueue('${escapedPath}')" title="Aggiungi a coda">📋</button>
+                <button class="video-action-btn ${replay.favorite ? 'active' : ''}" onclick="toggleFavorite('${escapedPath}')" title="${t('tooltips.favorite')}">⭐</button>
+                <button class="video-action-btn" onclick="loadVideo('${escapedPath}')" title="${t('tooltips.loadInOBS')}">▶️</button>
+                <button class="video-action-btn" onclick="addToQueue('${escapedPath}')" title="${t('tooltips.addToQueue')}">📋</button>
             </div>
         </div>
     `;
@@ -5113,15 +5113,15 @@ function renderCategories() {
     const list = document.getElementById('category-list');
 
     if (Object.keys(categories).length === 0) {
-        list.innerHTML = '<div class="empty-state-text">Nessuna categoria</div>';
+        list.innerHTML = `<div class="empty-state-text">${t('menu.noCategoriesCreated')}</div>`;
         return;
     }
 
     list.innerHTML = Object.entries(categories).map(([name, data]) => `
         <div class="category-item" oncontextmenu="showCategoryContextMenu(event, '${name.replace(/'/g, "\\'")}', '${data.color}')">
-            <div class="category-color" style="background-color: ${data.color};" title="Tasto destro per cambiare colore"></div>
+            <div class="category-color" style="background-color: ${data.color};" title="${t('categoryMenu.changeColor')}"></div>
             <div class="category-name">${name}</div>
-            <div class="category-count">${data.count} video</div>
+            <div class="category-count">${data.count} ${t('ui.videos')}</div>
             <button class="category-delete-btn" onclick="deleteCategory('${name.replace(/'/g, "\\'")}')">✕</button>
         </div>
     `).join('');
@@ -5143,10 +5143,10 @@ function showCategoryContextMenu(event, categoryName, currentColor) {
         <div class="context-menu-header">${categoryName}</div>
         <div class="context-menu-item" onclick="renameCategory('${categoryName.replace(/'/g, "\\'")}'); hideCategoryContextMenu();">
             <span class="menu-icon">✏️</span>
-            <span>Rinomina</span>
+            <span>${t('categoryMenu.rename')}</span>
         </div>
         <div class="context-menu-separator"></div>
-        <div class="context-menu-header">Cambia colore</div>
+        <div class="context-menu-header">${t('categoryMenu.changeColor')}</div>
         <div class="color-picker-grid">
     `;
 
@@ -5161,7 +5161,7 @@ function showCategoryContextMenu(event, categoryName, currentColor) {
         <div class="context-menu-separator"></div>
         <div class="context-menu-item danger" onclick="deleteCategory('${categoryName.replace(/'/g, "\\'")}'); hideCategoryContextMenu();">
             <span class="menu-icon">🗑️</span>
-            <span>Elimina</span>
+            <span>${t('categoryMenu.delete')}</span>
         </div>
     `;
 
@@ -5212,7 +5212,7 @@ function updateCategoryFilter() {
     html += `<div class="filter-dropdown-item ${allSelected ? 'selected' : ''}" onclick="selectCategory(null); event.stopPropagation();">
         <span class="item-checkbox"></span>
         <span class="item-color" style="background:#666;"></span>
-        <span class="item-name">Tutte le categorie</span>
+        <span class="item-name">${t('ui.all')}</span>
         <span class="item-count">${totalVideos}</span>
     </div>`;
 
@@ -5234,7 +5234,7 @@ function updateCategoryFilter() {
         if (currentFilter.category) {
             filterText.textContent = currentFilter.category;
         } else {
-            filterText.textContent = 'Categorie';
+            filterText.textContent = t('ui.categories');
         }
     }
 }
@@ -5277,7 +5277,7 @@ async function addCategory() {
     const color = getSelectedPresetColor();
 
     if (!name) {
-        showNotification('Inserisci un nome per la categoria', 'warning');
+        showNotification(t('notifications.duplicateOrInvalidName'), 'warning');
         return;
     }
 
@@ -5572,7 +5572,7 @@ function renderHiddenVideos() {
         <div class="hidden-item">
             <div class="hidden-item-name">${video.name}</div>
             <div class="hidden-item-actions">
-                <button class="hidden-item-btn" onclick="unhideVideo('${video.path}')">Mostra</button>
+                <button class="hidden-item-btn" onclick="unhideVideo('${video.path}')">${t('ui.showAll')}</button>
             </div>
         </div>
     `).join('');
