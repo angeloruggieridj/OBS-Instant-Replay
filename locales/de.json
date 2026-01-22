@@ -1,0 +1,151 @@
+{
+  "app": {
+    "title": "Replay Manager"
+  },
+  "menu": {
+    "addToFavorites": "Zu Favoriten hinzufügen",
+    "removeFromFavorites": "Aus Favoriten entfernen",
+    "addToPlaylist": "Zur Playlist hinzufügen",
+    "rename": "Umbenennen",
+    "category": "Kategorie",
+    "none": "Keine",
+    "noCategoriesCreated": "Keine Kategorien erstellt"
+  },
+  "notifications": {
+    "addedToFavorites": "Zu Favoriten hinzugefügt",
+    "removedFromFavorites": "Aus Favoriten entfernt",
+    "addedToQueue": "Zur Warteschlange hinzugefügt",
+    "alreadyInQueue": "Video bereits in Warteschlange",
+    "videoLoaded": "Video geladen (bereit zum Abspielen)",
+    "videoLoadedSpeed": "Video geladen mit Geschwindigkeit",
+    "videoHidden": "Video ausgeblendet",
+    "videoDeleted": "Video gelöscht",
+    "videoRenamed": "Video umbenannt",
+    "renameError": "Fehler beim Umbenennen",
+    "categoryAssigned": "Kategorie zugewiesen",
+    "categoryRemoved": "Kategorie entfernt",
+    "categoryRenamed": "Kategorie umbenannt",
+    "categoryDeleted": "Kategorie gelöscht",
+    "categoryCreated": "Kategorie erstellt",
+    "colorUpdated": "Farbe aktualisiert",
+    "errorUpdatingColor": "Fehler beim Aktualisieren der Farbe",
+    "duplicateOrInvalidName": "Doppelter oder ungültiger Name",
+    "settingsSaved": "Einstellungen gespeichert",
+    "configExported": "Konfiguration exportiert",
+    "configImported": "Konfiguration importiert",
+    "importError": "Importfehler"
+  },
+  "playlist": {
+    "title": "Playlist / Warteschlange",
+    "empty": "Warteschlange leer",
+    "addVideosFromGrid": "Videos aus dem Raster hinzufügen",
+    "started": "Playlist gestartet",
+    "completed": "Playlist abgeschlossen",
+    "stopped": "Playlist gestoppt",
+    "shuffled": "Playlist gemischt",
+    "cleared": "Warteschlange geleert",
+    "removedFromQueue": "Aus Warteschlange entfernt",
+    "loopEnabled": "Schleife aktiviert",
+    "loopDisabled": "Schleife deaktiviert",
+    "nowPlaying": "Jetzt läuft",
+    "playbackQueue": "Wiedergabe-Warteschlange",
+    "createHighlights": "Highlights aus Warteschlange erstellen",
+    "videosInQueue": "Videos",
+    "totalDuration": "Gesamtdauer"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "general": "Allgemein",
+    "language": "Sprache",
+    "interfaceLanguage": "Oberflächensprache",
+    "obsConfiguration": "OBS-Konfiguration",
+    "replayFolder": "Replay-Ordner",
+    "browse": "Durchsuchen",
+    "openFolder": "Ordner öffnen",
+    "mediaSourceName": "Medienquelle Name",
+    "targetScene": "Zielszene",
+    "autoSwitchScene": "Szene automatisch beim Laden wechseln",
+    "filters": "Filter",
+    "fileNameFilter": "Dateiname-Filter",
+    "filterDescription": "Nur Dateien anzeigen, die mit diesem Text beginnen",
+    "filterPlaceholder": "z.B.: Replay",
+    "saveSettings": "Einstellungen speichern",
+    "backupConfiguration": "Backup-Konfiguration",
+    "backupDescription": "Alle Konfigurationen, Kategorien und Favoriten exportieren oder importieren",
+    "export": "Exportieren",
+    "import": "Importieren"
+  },
+  "categories": {
+    "newCategory": "Neue Kategorie",
+    "add": "Hinzufügen",
+    "yourCategories": "Deine Kategorien",
+    "categoryNamePlaceholder": "Kategoriename..."
+  },
+  "ui": {
+    "favorites": "Favoriten",
+    "inQueue": "In Warteschlange",
+    "categories": "Kategorien",
+    "search": "Suchen",
+    "searchPlaceholder": "Nach Dateinamen suchen...",
+    "clear": "Löschen",
+    "videos": "Videos",
+    "hiddenVideos": "Ausgeblendete Videos",
+    "showAll": "Alle anzeigen",
+    "noHiddenVideos": "Keine ausgeblendeten Videos",
+    "hiddenVideosWillAppear": "Ausgeblendete Videos werden hier angezeigt",
+    "all": "Alle"
+  },
+  "controls": {
+    "play": "Abspielen",
+    "stop": "Stopp",
+    "loop": "Schleife",
+    "shuffle": "Mischen",
+    "empty": "Leeren"
+  },
+  "dialogs": {
+    "newCategoryName": "Neuer Kategoriename:",
+    "renamePrompt": "Neuer Name für das Video:",
+    "confirmDelete": "Endgültig löschen",
+    "confirmDeleteCategory": "Kategorie löschen"
+  },
+  "themes": {
+    "title": "Themen",
+    "dark": "Dunkel",
+    "light": "Hell",
+    "blue": "Blau",
+    "green": "Grün",
+    "classic": "Klassisch"
+  },
+  "about": {
+    "title": "Über",
+    "version": "Version",
+    "checkUpdates": "Nach Updates suchen",
+    "checking": "Überprüfen...",
+    "updateAvailable": "Update verfügbar",
+    "upToDate": "Aktuell",
+    "channel": "Update-Kanal",
+    "stable": "Stabil",
+    "beta": "Beta"
+  },
+  "tooltips": {
+    "favorite": "Favorit",
+    "loadInOBS": "In OBS laden",
+    "addToQueue": "Zur Warteschlange",
+    "hide": "Ausblenden",
+    "delete": "Löschen"
+  },
+  "speed": {
+    "label": "Geschwindigkeit"
+  },
+  "errors": {
+    "serverError": "Server-Kommunikationsfehler",
+    "errorDeleting": "Fehler beim Löschen",
+    "errorRenaming": "Fehler beim Umbenennen",
+    "fileNotFound": "Datei nicht gefunden"
+  },
+  "categoryMenu": {
+    "rename": "Umbenennen",
+    "changeColor": "Farbe ändern",
+    "delete": "Löschen"
+  }
+}

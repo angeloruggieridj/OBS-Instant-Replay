@@ -780,6 +780,23 @@ class ReplayAPIHandler(BaseHTTPRequestHandler):
                     })
             self.send_json({'highlights': highlights, 'count': len(highlights)})
 
+        elif path.startswith('/api/locale/'):
+            # Serve locale files from locales/ folder
+            lang = path.split('/')[-1].replace('.json', '')
+            if lang in ('en', 'it', 'es', 'fr', 'de'):
+                locale_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'locales', f'{lang}.json')
+                if os.path.exists(locale_path):
+                    try:
+                        with open(locale_path, 'r', encoding='utf-8') as f:
+                            locale_data = json.load(f)
+                        self.send_json(locale_data)
+                    except Exception as e:
+                        self.send_json({'error': str(e)})
+                else:
+                    self.send_json({'error': 'Locale file not found'})
+            else:
+                self.send_json({'error': 'Unsupported language'})
+
         elif path == '/api/version':
             self.send_json({
                 'version': VERSION,
@@ -3129,9 +3146,9 @@ body {
         </div>
 
         <div class="header-actions">
-            <button class="header-btn" onclick="toggleSearch()" title="Cerca">
+            <button class="header-btn" onclick="toggleSearch()" data-i18n-title="ui.search" title="Search">
                 <span class="btn-icon">🔍</span>
-                <span class="btn-text">Cerca</span>
+                <span class="btn-text" data-i18n="ui.search">Cerca</span>
             </button>
             <button class="header-btn" onclick="openPlaylistModal()" title="Playlist">
                 <span class="btn-icon">📋</span>
@@ -3141,17 +3158,17 @@ body {
                 <span class="btn-icon">✨</span>
                 <span class="btn-text">Highlights</span>
             </button>
-            <button class="header-btn" onclick="openSettingsModal()" title="Impostazioni">
+            <button class="header-btn" onclick="openSettingsModal()" data-i18n-title="settings.title" title="Settings">
                 <span class="btn-icon">⚙️</span>
-                <span class="btn-text">Impostazioni</span>
+                <span class="btn-text" data-i18n="settings.title">Impostazioni</span>
             </button>
-            <button class="header-btn" onclick="openHiddenModal()" title="Video nascosti">
+            <button class="header-btn" onclick="openHiddenModal()" data-i18n-title="ui.hiddenVideos" title="Hidden videos">
                 <span class="btn-icon">👁️</span>
-                <span class="btn-text">Nascosti</span>
+                <span class="btn-text" data-i18n="ui.hiddenVideos">Nascosti</span>
             </button>
-            <button class="header-btn" onclick="refreshReplays()" title="Aggiorna lista">
+            <button class="header-btn" onclick="refreshReplays()" title="Refresh">
                 <span class="btn-icon">🔄</span>
-                <span class="btn-text">Aggiorna</span>
+                <span class="btn-text">Refresh</span>
             </button>
         </div>
 
@@ -3178,8 +3195,8 @@ body {
     <!-- Search Bar -->
     <div class="search-bar" id="search-bar">
         <div class="search-input-wrapper">
-            <input type="text" class="search-input" id="search-input" placeholder="Cerca per nome file..." oninput="debouncedSearch()">
-            <button class="search-clear-btn" onclick="clearSearch()">Cancella</button>
+            <input type="text" class="search-input" id="search-input" data-i18n-placeholder="ui.searchPlaceholder" placeholder="Search by file name..." oninput="debouncedSearch()">
+            <button class="search-clear-btn" onclick="clearSearch()" data-i18n="ui.clear">Clear</button>
         </div>
     </div>
 
@@ -3187,16 +3204,16 @@ body {
     <div class="filters-bar">
         <button class="filter-btn" id="filter-favorites" onclick="toggleFilter('favorites')">
             <span>⭐</span>
-            <span>Preferiti</span>
+            <span data-i18n="ui.favorites">Preferiti</span>
         </button>
         <button class="filter-btn" id="filter-queue" onclick="toggleFilter('queue')">
             <span>📋</span>
-            <span>In coda</span>
+            <span data-i18n="ui.inQueue">In coda</span>
         </button>
         <div class="filter-dropdown-container" id="category-dropdown">
             <div class="filter-dropdown-trigger" onclick="toggleCategoryDropdown()">
                 <span class="filter-icon">🏷️</span>
-                <span class="filter-text" id="category-filter-text">Categorie</span>
+                <span class="filter-text" id="category-filter-text" data-i18n="ui.categories">Categorie</span>
                 <span class="dropdown-arrow">▼</span>
             </div>
             <div class="filter-dropdown-menu" id="category-dropdown-menu">
@@ -3217,18 +3234,18 @@ body {
         <div class="modal-header">
             <div class="modal-title">
                 <span>📋</span>
-                <span>Playlist / Coda</span>
+                <span data-i18n="playlist.title">Playlist / Coda</span>
             </div>
             <button class="modal-close-btn" onclick="closePlaylistModal()">✕</button>
         </div>
         <div class="modal-body">
             <div class="playlist-stats">
                 <div class="playlist-stat">
-                    <div class="playlist-stat-label">Video in coda</div>
+                    <div class="playlist-stat-label" data-i18n="playlist.videosInQueue">Video in coda</div>
                     <div class="playlist-stat-value" id="playlist-count">0</div>
                 </div>
                 <div class="playlist-stat">
-                    <div class="playlist-stat-label">Durata totale</div>
+                    <div class="playlist-stat-label" data-i18n="playlist.totalDuration">Durata totale</div>
                     <div class="playlist-stat-value" id="playlist-duration">--:--</div>
                 </div>
             </div>
@@ -3236,45 +3253,45 @@ body {
             <div class="playlist-controls">
                 <button class="playlist-control-btn primary" onclick="playPlaylist()">
                     <span>▶️</span>
-                    <span>Play</span>
+                    <span data-i18n="controls.play">Play</span>
                 </button>
                 <button class="playlist-control-btn" onclick="stopPlaylist()">
                     <span>⏹️</span>
-                    <span>Stop</span>
+                    <span data-i18n="controls.stop">Stop</span>
                 </button>
                 <button class="playlist-control-btn loop" onclick="toggleLoop()">
                     <span>🔁</span>
-                    <span>Loop</span>
+                    <span data-i18n="controls.loop">Loop</span>
                 </button>
                 <button class="playlist-control-btn" onclick="shufflePlaylist()">
                     <span>🔀</span>
-                    <span>Shuffle</span>
+                    <span data-i18n="controls.shuffle">Shuffle</span>
                 </button>
                 <button class="playlist-control-btn danger" onclick="clearPlaylist()">
                     <span>🗑️</span>
-                    <span>Svuota</span>
+                    <span data-i18n="controls.empty">Svuota</span>
                 </button>
             </div>
 
             <div class="now-playing" id="now-playing">
-                <div class="now-playing-label">In riproduzione:</div>
+                <div class="now-playing-label" data-i18n="playlist.nowPlaying">In riproduzione:</div>
                 <div class="now-playing-title" id="now-playing-title">--</div>
             </div>
 
             <div class="settings-section" style="margin-top: 20px;">
-                <div class="settings-section-title">📋 Coda Riproduzione</div>
+                <div class="settings-section-title">📋 <span data-i18n="playlist.playbackQueue">Coda Riproduzione</span></div>
                 <div class="playlist-items" id="playlist-items">
                     <!-- Playlist items will be inserted here -->
                 </div>
                 <div class="empty-state" id="playlist-empty" style="display: none;">
                     <div class="empty-state-icon">📋</div>
-                    <div class="empty-state-text">Playlist vuota</div>
-                    <div class="empty-state-subtext">Aggiungi video dalla griglia</div>
+                    <div class="empty-state-text" data-i18n="playlist.empty">Playlist vuota</div>
+                    <div class="empty-state-subtext" data-i18n="playlist.addVideosFromGrid">Aggiungi video dalla griglia</div>
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 10px;">
                     <button class="playlist-control-btn primary" onclick="createHighlightsFromQueue()">
                         <span>✨</span>
-                        <span>Crea Highlights da coda</span>
+                        <span data-i18n="playlist.createHighlights">Crea Highlights da coda</span>
                     </button>
                 </div>
             </div>
@@ -3308,58 +3325,54 @@ body {
         <div class="modal-header">
             <div class="modal-title">
                 <span>⚙️</span>
-                <span>Impostazioni</span>
+                <span data-i18n="settings.title">Impostazioni</span>
             </div>
             <button class="modal-close-btn" onclick="closeSettingsModal()">✕</button>
         </div>
         <div class="modal-body">
             <div class="settings-tabs">
-                <button class="settings-tab active" onclick="switchSettingsTab('general')">Generale</button>
-                <button class="settings-tab" onclick="switchSettingsTab('categories')">Categorie</button>
-                <button class="settings-tab" onclick="switchSettingsTab('themes')">Temi</button>
-                <button class="settings-tab" onclick="switchSettingsTab('info')">About</button>
+                <button class="settings-tab active" onclick="switchSettingsTab('general')" data-i18n="settings.general">Generale</button>
+                <button class="settings-tab" onclick="switchSettingsTab('categories')" data-i18n="ui.categories">Categorie</button>
+                <button class="settings-tab" onclick="switchSettingsTab('themes')" data-i18n="themes.title">Temi</button>
+                <button class="settings-tab" onclick="switchSettingsTab('info')" data-i18n="about.title">About</button>
             </div>
 
             <!-- General Panel -->
             <div class="settings-panel active" id="panel-general">
                 <div class="settings-section">
-                    <div class="settings-section-title">Configurazione OBS</div>
+                    <div class="settings-section-title" data-i18n="settings.obsConfiguration">Configurazione OBS</div>
                     <div class="settings-item" style="flex-direction: column; align-items: stretch; gap: 8px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <div>
-                                <div class="settings-item-label">Cartella Replay</div>
-                                <div class="settings-item-description">Percorso della cartella contenente i replay</div>
+                                <div class="settings-item-label" data-i18n="settings.replayFolder">Cartella Replay</div>
                             </div>
-                            <button class="header-btn" onclick="openFolder()" title="Apri cartella">
+                            <button class="header-btn" onclick="openFolder()" data-i18n-title="settings.openFolder" title="Apri cartella">
                                 <span>📂</span>
                             </button>
                         </div>
                         <div style="display: flex; gap: 8px; align-items: center;">
-                            <input type="text" class="settings-input" id="replay-folder-path" style="flex: 1;" placeholder="Seleziona cartella...">
+                            <input type="text" class="settings-input" id="replay-folder-path" style="flex: 1;" placeholder="Select folder...">
                             <button class="header-btn" onclick="browseFolder()">
                                 <span>📁</span>
-                                <span>Sfoglia</span>
+                                <span data-i18n="settings.browse">Sfoglia</span>
                             </button>
                         </div>
                     </div>
                     <div class="settings-item">
                         <div>
-                            <div class="settings-item-label">Nome Media Source</div>
-                            <div class="settings-item-description">Nome della sorgente multimediale in OBS</div>
+                            <div class="settings-item-label" data-i18n="settings.mediaSourceName">Nome Media Source</div>
                         </div>
-                        <input type="text" class="settings-input" id="media-source-name" placeholder="es. Replay Source">
+                        <input type="text" class="settings-input" id="media-source-name" placeholder="e.g. Replay Source">
                     </div>
                     <div class="settings-item">
                         <div>
-                            <div class="settings-item-label">Scena Target</div>
-                            <div class="settings-item-description">Scena OBS dove caricare i replay</div>
+                            <div class="settings-item-label" data-i18n="settings.targetScene">Scena Target</div>
                         </div>
-                        <input type="text" class="settings-input" id="target-scene-name" placeholder="es. Replay Scene">
+                        <input type="text" class="settings-input" id="target-scene-name" placeholder="e.g. Replay Scene">
                     </div>
                     <div class="settings-item">
                         <div>
-                            <div class="settings-item-label">Auto-switch scena</div>
-                            <div class="settings-item-description">Cambia automaticamente scena quando carichi un video</div>
+                            <div class="settings-item-label" data-i18n="settings.autoSwitchScene">Auto-switch scena</div>
                         </div>
                         <label class="switch">
                             <input type="checkbox" id="auto-switch-scene">
@@ -3369,11 +3382,10 @@ body {
                 </div>
 
                 <div class="settings-section">
-                    <div class="settings-section-title">🌐 Lingua / Language</div>
+                    <div class="settings-section-title">🌐 <span data-i18n="settings.language">Lingua</span></div>
                     <div class="settings-item">
                         <div>
-                            <div class="settings-item-label">Lingua interfaccia</div>
-                            <div class="settings-item-description">Interface language</div>
+                            <div class="settings-item-label" data-i18n="settings.interfaceLanguage">Lingua interfaccia</div>
                         </div>
                         <select id="language-select" class="settings-input" onchange="setLanguage(this.value)" style="width: 120px;">
                             <option value="en">English</option>
@@ -3386,36 +3398,36 @@ body {
                 </div>
 
                 <div class="settings-section">
-                    <div class="settings-section-title">Filtri</div>
+                    <div class="settings-section-title" data-i18n="settings.filters">Filtri</div>
                     <div class="settings-item">
                         <div>
-                            <div class="settings-item-label">Filtro nome file</div>
-                            <div class="settings-item-description">Mostra solo file che iniziano con questo testo</div>
+                            <div class="settings-item-label" data-i18n="settings.fileNameFilter">Filtro nome file</div>
+                            <div class="settings-item-description" data-i18n="settings.filterDescription">Mostra solo file che iniziano con questo testo</div>
                         </div>
-                        <input type="text" class="settings-input" id="filter-mask" placeholder="es. Replay_">
+                        <input type="text" class="settings-input" id="filter-mask" data-i18n-placeholder="settings.filterPlaceholder" placeholder="e.g. Replay_">
                     </div>
                 </div>
 
                 <div class="settings-section" style="margin-top: 16px;">
                     <button class="header-btn primary" onclick="saveOBSSettings()" style="width: 100%; justify-content: center;">
                         <span>💾</span>
-                        <span>Salva Impostazioni</span>
+                        <span data-i18n="settings.saveSettings">Salva Impostazioni</span>
                     </button>
                 </div>
 
                 <div class="settings-section" style="margin-top: 16px;">
-                    <div class="settings-section-title">Backup Configurazione</div>
-                    <div class="settings-item-description" style="margin-bottom: 12px;">
+                    <div class="settings-section-title" data-i18n="settings.backupConfiguration">Backup Configurazione</div>
+                    <div class="settings-item-description" style="margin-bottom: 12px;" data-i18n="settings.backupDescription">
                         Esporta o importa tutte le configurazioni, categorie e preferiti
                     </div>
                     <div style="display: flex; gap: 8px;">
                         <button class="header-btn" onclick="exportConfig()" style="flex: 1; justify-content: center;">
                             <span>📤</span>
-                            <span>Esporta</span>
+                            <span data-i18n="settings.export">Esporta</span>
                         </button>
                         <button class="header-btn" onclick="importConfig()" style="flex: 1; justify-content: center;">
                             <span>📥</span>
-                            <span>Importa</span>
+                            <span data-i18n="settings.import">Importa</span>
                         </button>
                     </div>
                     <input type="file" id="import-config-input" accept=".json" style="display: none;" onchange="handleConfigImport(event)">
@@ -3425,10 +3437,10 @@ body {
             <!-- Categories Panel -->
             <div class="settings-panel" id="panel-categories">
                 <div class="settings-section">
-                    <div class="settings-section-title">Nuova Categoria</div>
+                    <div class="settings-section-title" data-i18n="categories.newCategory">Nuova Categoria</div>
                     <div class="add-category-form" style="margin-bottom: 12px;">
-                        <input type="text" class="add-category-input" id="new-category-name" placeholder="Nome categoria...">
-                        <button class="add-category-btn" onclick="addCategory()">Aggiungi</button>
+                        <input type="text" class="add-category-input" id="new-category-name" data-i18n-placeholder="categories.categoryNamePlaceholder" placeholder="Nome categoria...">
+                        <button class="add-category-btn" onclick="addCategory()" data-i18n="categories.add">Aggiungi</button>
                     </div>
                     <div class="color-presets" id="color-presets">
                         <div class="color-preset selected" data-color="#e74c3c" style="background:#e74c3c;" onclick="selectPresetColor(this)"></div>
@@ -3444,7 +3456,7 @@ body {
                 </div>
 
                 <div class="settings-section">
-                    <div class="settings-section-title">Le Tue Categorie</div>
+                    <div class="settings-section-title" data-i18n="categories.yourCategories">Le Tue Categorie</div>
                     <div class="category-list" id="category-list">
                         <!-- Categories will be inserted here -->
                     </div>
@@ -3454,27 +3466,27 @@ body {
             <!-- Themes Panel -->
             <div class="settings-panel" id="panel-themes">
                 <div class="settings-section">
-                    <div class="settings-section-title">Seleziona Tema</div>
+                    <div class="settings-section-title" data-i18n="themes.title">Seleziona Tema</div>
                     <div class="theme-selector">
                         <div class="theme-option active" data-theme="default" onclick="setTheme('default')">
                             <div class="theme-preview" style="background: linear-gradient(135deg, #1a1a1a, #4a9eff);"></div>
-                            <div>Dark (Default)</div>
+                            <div data-i18n="themes.dark">Dark</div>
                         </div>
                         <div class="theme-option" data-theme="light" onclick="setTheme('light')">
                             <div class="theme-preview" style="background: linear-gradient(135deg, #f5f5f5, #2196f3);"></div>
-                            <div>Light</div>
+                            <div data-i18n="themes.light">Light</div>
                         </div>
                         <div class="theme-option" data-theme="blue" onclick="setTheme('blue')">
                             <div class="theme-preview" style="background: linear-gradient(135deg, #0a1628, #4a9eff);"></div>
-                            <div>Blue (Acri)</div>
+                            <div data-i18n="themes.blue">Blue</div>
                         </div>
                         <div class="theme-option" data-theme="green" onclick="setTheme('green')">
                             <div class="theme-preview" style="background: linear-gradient(135deg, #0d1f0d, #44ff88);"></div>
-                            <div>Green (Rachni)</div>
+                            <div data-i18n="themes.green">Green</div>
                         </div>
                         <div class="theme-option" data-theme="classic" onclick="setTheme('classic')">
                             <div class="theme-preview" style="background: linear-gradient(135deg, #2b2b2b, #66aaff);"></div>
-                            <div>Classic</div>
+                            <div data-i18n="themes.classic">Classic</div>
                         </div>
                     </div>
                 </div>
@@ -3487,21 +3499,21 @@ body {
                     <div class="settings-item" style="flex-direction: column; align-items: flex-start; gap: 12px;">
                         <div style="display: flex; width: 100%; justify-content: space-between; align-items: center;">
                             <div>
-                                <div class="settings-item-label">Versione corrente: <span id="current-version">--</span></div>
-                                <div class="settings-item-description" id="update-status">Clicca per verificare aggiornamenti</div>
+                                <div class="settings-item-label"><span data-i18n="about.version">Versione</span>: <span id="current-version">--</span></div>
+                                <div class="settings-item-description" id="update-status" data-i18n="about.checkUpdates">Verifica aggiornamenti</div>
                             </div>
                             <button class="header-btn" id="check-updates-btn" onclick="checkForUpdates()">
                                 <span>🔄</span>
-                                <span>Verifica</span>
+                                <span data-i18n="about.checkUpdates">Verifica</span>
                             </button>
                         </div>
                         <div id="update-info" style="display: none; width: 100%; padding: 12px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                 <div>
-                                    <strong style="color: var(--accent-success);">Nuova versione disponibile: <span id="new-version">--</span></strong>
+                                    <strong style="color: var(--accent-success);"><span data-i18n="about.updateAvailable">Update disponibile</span>: <span id="new-version">--</span></strong>
                                     <span id="prerelease-badge" style="display: none; margin-left: 8px; padding: 2px 6px; background: var(--accent-warning); color: #000; border-radius: 4px; font-size: 10px; font-weight: bold;">BETA</span>
                                 </div>
-                                <a id="release-link" href="#" target="_blank" style="color: var(--accent-primary); font-size: 12px;">Vedi su GitHub</a>
+                                <a id="release-link" href="#" target="_blank" style="color: var(--accent-primary); font-size: 12px;">GitHub</a>
                             </div>
                             <div id="release-notes" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; max-height: 100px; overflow-y: auto;"></div>
                             <div id="update-assets" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
@@ -3510,22 +3522,21 @@ body {
 
                     <div class="settings-item" style="margin-top: 12px;">
                         <div>
-                            <div class="settings-item-label">Canale aggiornamenti</div>
-                            <div class="settings-item-description">Beta include versioni di test, Stabile solo release ufficiali</div>
+                            <div class="settings-item-label" data-i18n="about.channel">Canale aggiornamenti</div>
                         </div>
                         <div class="channel-selector" style="display: flex; gap: 8px;">
                             <button class="channel-btn" id="channel-beta" onclick="setUpdateChannel('beta')">
-                                <span>🧪</span> Beta
+                                <span>🧪</span> <span data-i18n="about.beta">Beta</span>
                             </button>
                             <button class="channel-btn" id="channel-stable" onclick="setUpdateChannel('stable')">
-                                <span>✅</span> Stabile
+                                <span>✅</span> <span data-i18n="about.stable">Stabile</span>
                             </button>
                         </div>
                     </div>
                 </div>
 
                 <div class="settings-section">
-                    <div class="settings-section-title">Informazioni</div>
+                    <div class="settings-section-title">Info</div>
                     <div class="settings-item">
                         <div class="settings-item-label">Server HTTP</div>
                         <div class="settings-item-description" id="server-url">http://localhost:8765</div>
@@ -3548,7 +3559,7 @@ body {
         <div class="modal-header">
             <div class="modal-title">
                 <span>👁️</span>
-                <span>Video Nascosti</span>
+                <span data-i18n="ui.hiddenVideos">Video Nascosti</span>
             </div>
             <button class="modal-close-btn" onclick="closeHiddenModal()">✕</button>
         </div>
@@ -3556,7 +3567,7 @@ body {
             <div class="hidden-batch-actions">
                 <button class="playlist-control-btn primary" onclick="unhideAll()">
                     <span>👁️</span>
-                    <span>Mostra tutti</span>
+                    <span data-i18n="ui.showAll">Mostra tutti</span>
                 </button>
             </div>
 
@@ -3602,561 +3613,123 @@ body {
 <!-- ==================== JAVASCRIPT ==================== -->
 <script>
 // ==================== INTERNATIONALIZATION (i18n) ====================
-const translations = {
-    en: {
-        // Context Menu
-        addToFavorites: 'Add to favorites',
-        removeFromFavorites: 'Remove from favorites',
-        addToPlaylist: 'Add to playlist',
-        rename: 'Rename',
-        category: 'Category',
-        none: 'None',
-        noCategoriesCreated: 'No categories created',
-        // Notifications
-        addedToFavorites: 'Added to favorites',
-        removedFromFavorites: 'Removed from favorites',
-        addedToQueue: 'Added to queue',
-        alreadyInQueue: 'Video already in queue',
-        videoLoaded: 'Video loaded (ready to play)',
-        videoLoadedSpeed: 'Video loaded at speed',
-        videoHidden: 'Video hidden',
-        videoDeleted: 'Video deleted',
-        videoRenamed: 'Video renamed',
-        renameError: 'Rename error',
-        categoryAssigned: 'Category assigned',
-        categoryRemoved: 'Category removed',
-        categoryRenamed: 'Category renamed',
-        categoryDeleted: 'Category deleted',
-        colorUpdated: 'Color updated',
-        errorUpdatingColor: 'Error updating color',
-        duplicateOrInvalidName: 'Duplicate or invalid name',
-        // Playlist
-        playlistEmpty: 'Empty playlist',
-        addVideosFromGrid: 'Add videos from grid',
-        playlistStarted: 'Playlist started',
-        playlistCompleted: 'Playlist completed',
-        playlistStopped: 'Playlist stopped',
-        playlistShuffled: 'Playlist shuffled',
-        playlistCleared: 'Playlist cleared',
-        removedFromQueue: 'Removed from queue',
-        loopEnabled: 'Loop enabled',
-        loopDisabled: 'Loop disabled',
-        nowPlaying: 'Now playing',
-        playbackQueue: 'Playback Queue',
-        createHighlightsFromQueue: 'Create Highlights from queue',
-        // Settings
-        settings: 'Settings',
-        general: 'General',
-        language: 'Language',
-        obsConfiguration: 'OBS Configuration',
-        replayFolder: 'Replay Folder',
-        browse: 'Browse',
-        openFolder: 'Open folder',
-        mediaSourceName: 'Media Source Name',
-        targetScene: 'Target Scene',
-        autoSwitchScene: 'Auto-switch scene',
-        filters: 'Filters',
-        fileNameFilter: 'File name filter',
-        filterPlaceholder: 'e.g.: Replay',
-        backupConfiguration: 'Backup Configuration',
-        export: 'Export',
-        import: 'Import',
-        // UI Labels
-        favorites: 'Favorites',
-        inQueue: 'In queue',
-        categories: 'Categories',
-        search: 'Search',
-        searchPlaceholder: 'Search by file name...',
-        clear: 'Clear',
-        videos: 'videos',
-        hiddenVideos: 'Hidden Videos',
-        showAll: 'Show all',
-        noHiddenVideos: 'No hidden videos',
-        hiddenVideosWillAppear: 'Hidden videos will appear here',
-        // Playlist Modal
-        playlist: 'Playlist / Queue',
-        videosInQueue: 'videos',
-        totalDuration: 'Total duration',
-        play: 'Play',
-        stop: 'Stop',
-        loop: 'Loop',
-        shuffle: 'Shuffle',
-        empty: 'Empty',
-        // Category Dialog
-        newCategoryName: 'New category name:',
-        renamePrompt: 'New name for the video:',
-        deleteCategory: 'Delete category',
-        renameCategory: 'Rename',
-        changeColor: 'Change color',
-        confirmDeleteCategory: 'Delete category',
-        // Themes
-        themes: 'Themes',
-        about: 'About',
-        // Tooltips
-        favorite: 'Favorite',
-        loadInOBS: 'Load in OBS',
-        addToQueue: 'Add to queue',
-        // Speed
-        speedLabel: 'Speed',
-        // Updates
-        checkingUpdates: 'Checking...',
-        checkUpdates: 'Check Updates',
-        // Errors
-        serverError: 'Server communication error',
-        errorDeleting: 'Error deleting',
-        errorRenaming: 'Error renaming',
-        fileNotFound: 'File not found'
-    },
-    it: {
-        // Context Menu
-        addToFavorites: 'Aggiungi a preferiti',
-        removeFromFavorites: 'Rimuovi da preferiti',
-        addToPlaylist: 'Aggiungi a playlist',
-        rename: 'Rinomina',
-        category: 'Categoria',
-        none: 'Nessuna',
-        noCategoriesCreated: 'Nessuna categoria creata',
-        // Notifications
-        addedToFavorites: 'Aggiunto ai preferiti',
-        removedFromFavorites: 'Rimosso dai preferiti',
-        addedToQueue: 'Aggiunto alla coda',
-        alreadyInQueue: 'Video già in coda',
-        videoLoaded: 'Video caricato (pronto per avvio)',
-        videoLoadedSpeed: 'Video caricato a velocità',
-        videoHidden: 'Video nascosto',
-        videoDeleted: 'Video eliminato',
-        videoRenamed: 'Video rinominato',
-        renameError: 'Errore nella rinomina',
-        categoryAssigned: 'Categoria assegnata',
-        categoryRemoved: 'Categoria rimossa',
-        categoryRenamed: 'Categoria rinominata',
-        categoryDeleted: 'Categoria eliminata',
-        colorUpdated: 'Colore aggiornato',
-        errorUpdatingColor: 'Errore aggiornamento colore',
-        duplicateOrInvalidName: 'Nome duplicato o non valido',
-        // Playlist
-        playlistEmpty: 'Coda vuota',
-        addVideosFromGrid: 'Aggiungi video dalla griglia',
-        playlistStarted: 'Playlist avviata',
-        playlistCompleted: 'Playlist completata',
-        playlistStopped: 'Playlist fermata',
-        playlistShuffled: 'Playlist mescolata',
-        playlistCleared: 'Coda svuotata',
-        removedFromQueue: 'Rimosso dalla coda',
-        loopEnabled: 'Loop attivato',
-        loopDisabled: 'Loop disattivato',
-        nowPlaying: 'In riproduzione',
-        playbackQueue: 'Coda Riproduzione',
-        createHighlightsFromQueue: 'Crea Highlights dalla coda',
-        // Settings
-        settings: 'Impostazioni',
-        general: 'Generale',
-        language: 'Lingua',
-        obsConfiguration: 'Configurazione OBS',
-        replayFolder: 'Cartella Replay',
-        browse: 'Sfoglia',
-        openFolder: 'Apri cartella',
-        mediaSourceName: 'Nome Sorgente Media',
-        targetScene: 'Scena Target',
-        autoSwitchScene: 'Cambia scena automaticamente',
-        filters: 'Filtri',
-        fileNameFilter: 'Filtro nome file',
-        filterPlaceholder: 'es: Replay',
-        backupConfiguration: 'Backup Configurazione',
-        export: 'Esporta',
-        import: 'Importa',
-        // UI Labels
-        favorites: 'Preferiti',
-        inQueue: 'In coda',
-        categories: 'Categorie',
-        search: 'Cerca',
-        searchPlaceholder: 'Cerca per nome file...',
-        clear: 'Cancella',
-        videos: 'video',
-        hiddenVideos: 'Video Nascosti',
-        showAll: 'Mostra tutti',
-        noHiddenVideos: 'Nessun video nascosto',
-        hiddenVideosWillAppear: 'I video nascosti appariranno qui',
-        // Playlist Modal
-        playlist: 'Playlist / Coda',
-        videosInQueue: 'video',
-        totalDuration: 'Durata totale',
-        play: 'Play',
-        stop: 'Stop',
-        loop: 'Loop',
-        shuffle: 'Mescola',
-        empty: 'Svuota',
-        // Category Dialog
-        newCategoryName: 'Nuovo nome categoria:',
-        renamePrompt: 'Nuovo nome per il video:',
-        deleteCategory: 'Elimina categoria',
-        renameCategory: 'Rinomina',
-        changeColor: 'Cambia colore',
-        confirmDeleteCategory: 'Eliminare la categoria',
-        // Themes
-        themes: 'Temi',
-        about: 'Info',
-        // Tooltips
-        favorite: 'Preferito',
-        loadInOBS: 'Carica in OBS',
-        addToQueue: 'Aggiungi a coda',
-        // Speed
-        speedLabel: 'Velocità',
-        // Updates
-        checkingUpdates: 'Verificando...',
-        checkUpdates: 'Verifica aggiornamenti',
-        // Errors
-        serverError: 'Errore comunicazione server',
-        errorDeleting: 'Errore eliminazione',
-        errorRenaming: 'Errore rinomina',
-        fileNotFound: 'File non trovato'
-    },
-    es: {
-        // Context Menu
-        addToFavorites: 'Agregar a favoritos',
-        removeFromFavorites: 'Quitar de favoritos',
-        addToPlaylist: 'Agregar a playlist',
-        rename: 'Renombrar',
-        category: 'Categoría',
-        none: 'Ninguna',
-        noCategoriesCreated: 'No hay categorías creadas',
-        // Notifications
-        addedToFavorites: 'Agregado a favoritos',
-        removedFromFavorites: 'Quitado de favoritos',
-        addedToQueue: 'Agregado a la cola',
-        alreadyInQueue: 'Video ya está en cola',
-        videoLoaded: 'Video cargado (listo para reproducir)',
-        videoLoadedSpeed: 'Video cargado a velocidad',
-        videoHidden: 'Video oculto',
-        videoDeleted: 'Video eliminado',
-        videoRenamed: 'Video renombrado',
-        renameError: 'Error al renombrar',
-        categoryAssigned: 'Categoría asignada',
-        categoryRemoved: 'Categoría eliminada',
-        categoryRenamed: 'Categoría renombrada',
-        categoryDeleted: 'Categoría eliminada',
-        colorUpdated: 'Color actualizado',
-        errorUpdatingColor: 'Error actualizando color',
-        duplicateOrInvalidName: 'Nombre duplicado o inválido',
-        // Playlist
-        playlistEmpty: 'Cola vacía',
-        addVideosFromGrid: 'Agregar videos desde la cuadrícula',
-        playlistStarted: 'Playlist iniciada',
-        playlistCompleted: 'Playlist completada',
-        playlistStopped: 'Playlist detenida',
-        playlistShuffled: 'Playlist mezclada',
-        playlistCleared: 'Cola vaciada',
-        removedFromQueue: 'Eliminado de la cola',
-        loopEnabled: 'Bucle activado',
-        loopDisabled: 'Bucle desactivado',
-        nowPlaying: 'Reproduciendo',
-        playbackQueue: 'Cola de Reproducción',
-        createHighlightsFromQueue: 'Crear Highlights desde la cola',
-        // Settings
-        settings: 'Configuración',
-        general: 'General',
-        language: 'Idioma',
-        obsConfiguration: 'Configuración OBS',
-        replayFolder: 'Carpeta de Replays',
-        browse: 'Explorar',
-        openFolder: 'Abrir carpeta',
-        mediaSourceName: 'Nombre Fuente Media',
-        targetScene: 'Escena Destino',
-        autoSwitchScene: 'Cambiar escena automáticamente',
-        filters: 'Filtros',
-        fileNameFilter: 'Filtro nombre archivo',
-        filterPlaceholder: 'ej: Replay',
-        backupConfiguration: 'Backup Configuración',
-        export: 'Exportar',
-        import: 'Importar',
-        // UI Labels
-        favorites: 'Favoritos',
-        inQueue: 'En cola',
-        categories: 'Categorías',
-        search: 'Buscar',
-        searchPlaceholder: 'Buscar por nombre de archivo...',
-        clear: 'Limpiar',
-        videos: 'videos',
-        hiddenVideos: 'Videos Ocultos',
-        showAll: 'Mostrar todos',
-        noHiddenVideos: 'No hay videos ocultos',
-        hiddenVideosWillAppear: 'Los videos ocultos aparecerán aquí',
-        // Playlist Modal
-        playlist: 'Playlist / Cola',
-        videosInQueue: 'videos',
-        totalDuration: 'Duración total',
-        play: 'Play',
-        stop: 'Stop',
-        loop: 'Bucle',
-        shuffle: 'Mezclar',
-        empty: 'Vaciar',
-        // Category Dialog
-        newCategoryName: 'Nuevo nombre de categoría:',
-        renamePrompt: 'Nuevo nombre para el video:',
-        deleteCategory: 'Eliminar categoría',
-        renameCategory: 'Renombrar',
-        changeColor: 'Cambiar color',
-        confirmDeleteCategory: 'Eliminar la categoría',
-        // Themes
-        themes: 'Temas',
-        about: 'Acerca de',
-        // Tooltips
-        favorite: 'Favorito',
-        loadInOBS: 'Cargar en OBS',
-        addToQueue: 'Agregar a cola',
-        // Speed
-        speedLabel: 'Velocidad',
-        // Updates
-        checkingUpdates: 'Verificando...',
-        checkUpdates: 'Buscar actualizaciones',
-        // Errors
-        serverError: 'Error de comunicación con servidor',
-        errorDeleting: 'Error al eliminar',
-        errorRenaming: 'Error al renombrar',
-        fileNotFound: 'Archivo no encontrado'
-    },
-    fr: {
-        // Context Menu
-        addToFavorites: 'Ajouter aux favoris',
-        removeFromFavorites: 'Retirer des favoris',
-        addToPlaylist: 'Ajouter à la playlist',
-        rename: 'Renommer',
-        category: 'Catégorie',
-        none: 'Aucune',
-        noCategoriesCreated: 'Aucune catégorie créée',
-        // Notifications
-        addedToFavorites: 'Ajouté aux favoris',
-        removedFromFavorites: 'Retiré des favoris',
-        addedToQueue: 'Ajouté à la file',
-        alreadyInQueue: 'Vidéo déjà dans la file',
-        videoLoaded: 'Vidéo chargée (prête à jouer)',
-        videoLoadedSpeed: 'Vidéo chargée à la vitesse',
-        videoHidden: 'Vidéo masquée',
-        videoDeleted: 'Vidéo supprimée',
-        videoRenamed: 'Vidéo renommée',
-        renameError: 'Erreur de renommage',
-        categoryAssigned: 'Catégorie attribuée',
-        categoryRemoved: 'Catégorie supprimée',
-        categoryRenamed: 'Catégorie renommée',
-        categoryDeleted: 'Catégorie supprimée',
-        colorUpdated: 'Couleur mise à jour',
-        errorUpdatingColor: 'Erreur mise à jour couleur',
-        duplicateOrInvalidName: 'Nom en double ou invalide',
-        // Playlist
-        playlistEmpty: 'File vide',
-        addVideosFromGrid: 'Ajouter des vidéos depuis la grille',
-        playlistStarted: 'Playlist démarrée',
-        playlistCompleted: 'Playlist terminée',
-        playlistStopped: 'Playlist arrêtée',
-        playlistShuffled: 'Playlist mélangée',
-        playlistCleared: 'File vidée',
-        removedFromQueue: 'Retiré de la file',
-        loopEnabled: 'Boucle activée',
-        loopDisabled: 'Boucle désactivée',
-        nowPlaying: 'En lecture',
-        playbackQueue: 'File de lecture',
-        createHighlightsFromQueue: 'Créer Highlights depuis la file',
-        // Settings
-        settings: 'Paramètres',
-        general: 'Général',
-        language: 'Langue',
-        obsConfiguration: 'Configuration OBS',
-        replayFolder: 'Dossier Replays',
-        browse: 'Parcourir',
-        openFolder: 'Ouvrir dossier',
-        mediaSourceName: 'Nom Source Média',
-        targetScene: 'Scène Cible',
-        autoSwitchScene: 'Changer de scène automatiquement',
-        filters: 'Filtres',
-        fileNameFilter: 'Filtre nom fichier',
-        filterPlaceholder: 'ex: Replay',
-        backupConfiguration: 'Sauvegarde Configuration',
-        export: 'Exporter',
-        import: 'Importer',
-        // UI Labels
-        favorites: 'Favoris',
-        inQueue: 'Dans la file',
-        categories: 'Catégories',
-        search: 'Rechercher',
-        searchPlaceholder: 'Rechercher par nom de fichier...',
-        clear: 'Effacer',
-        videos: 'vidéos',
-        hiddenVideos: 'Vidéos Masquées',
-        showAll: 'Afficher tout',
-        noHiddenVideos: 'Aucune vidéo masquée',
-        hiddenVideosWillAppear: 'Les vidéos masquées apparaîtront ici',
-        // Playlist Modal
-        playlist: 'Playlist / File',
-        videosInQueue: 'vidéos',
-        totalDuration: 'Durée totale',
-        play: 'Lecture',
-        stop: 'Arrêt',
-        loop: 'Boucle',
-        shuffle: 'Mélanger',
-        empty: 'Vider',
-        // Category Dialog
-        newCategoryName: 'Nouveau nom de catégorie:',
-        renamePrompt: 'Nouveau nom pour la vidéo:',
-        deleteCategory: 'Supprimer catégorie',
-        renameCategory: 'Renommer',
-        changeColor: 'Changer couleur',
-        confirmDeleteCategory: 'Supprimer la catégorie',
-        // Themes
-        themes: 'Thèmes',
-        about: 'À propos',
-        // Tooltips
-        favorite: 'Favori',
-        loadInOBS: 'Charger dans OBS',
-        addToQueue: 'Ajouter à la file',
-        // Speed
-        speedLabel: 'Vitesse',
-        // Updates
-        checkingUpdates: 'Vérification...',
-        checkUpdates: 'Vérifier mises à jour',
-        // Errors
-        serverError: 'Erreur de communication serveur',
-        errorDeleting: 'Erreur suppression',
-        errorRenaming: 'Erreur renommage',
-        fileNotFound: 'Fichier non trouvé'
-    },
-    de: {
-        // Context Menu
-        addToFavorites: 'Zu Favoriten hinzufügen',
-        removeFromFavorites: 'Aus Favoriten entfernen',
-        addToPlaylist: 'Zur Playlist hinzufügen',
-        rename: 'Umbenennen',
-        category: 'Kategorie',
-        none: 'Keine',
-        noCategoriesCreated: 'Keine Kategorien erstellt',
-        // Notifications
-        addedToFavorites: 'Zu Favoriten hinzugefügt',
-        removedFromFavorites: 'Aus Favoriten entfernt',
-        addedToQueue: 'Zur Warteschlange hinzugefügt',
-        alreadyInQueue: 'Video bereits in Warteschlange',
-        videoLoaded: 'Video geladen (bereit zum Abspielen)',
-        videoLoadedSpeed: 'Video geladen mit Geschwindigkeit',
-        videoHidden: 'Video ausgeblendet',
-        videoDeleted: 'Video gelöscht',
-        videoRenamed: 'Video umbenannt',
-        renameError: 'Fehler beim Umbenennen',
-        categoryAssigned: 'Kategorie zugewiesen',
-        categoryRemoved: 'Kategorie entfernt',
-        categoryRenamed: 'Kategorie umbenannt',
-        categoryDeleted: 'Kategorie gelöscht',
-        colorUpdated: 'Farbe aktualisiert',
-        errorUpdatingColor: 'Fehler beim Aktualisieren der Farbe',
-        duplicateOrInvalidName: 'Doppelter oder ungültiger Name',
-        // Playlist
-        playlistEmpty: 'Warteschlange leer',
-        addVideosFromGrid: 'Videos aus dem Raster hinzufügen',
-        playlistStarted: 'Playlist gestartet',
-        playlistCompleted: 'Playlist abgeschlossen',
-        playlistStopped: 'Playlist gestoppt',
-        playlistShuffled: 'Playlist gemischt',
-        playlistCleared: 'Warteschlange geleert',
-        removedFromQueue: 'Aus Warteschlange entfernt',
-        loopEnabled: 'Schleife aktiviert',
-        loopDisabled: 'Schleife deaktiviert',
-        nowPlaying: 'Jetzt läuft',
-        playbackQueue: 'Wiedergabe-Warteschlange',
-        createHighlightsFromQueue: 'Highlights aus Warteschlange erstellen',
-        // Settings
-        settings: 'Einstellungen',
-        general: 'Allgemein',
-        language: 'Sprache',
-        obsConfiguration: 'OBS-Konfiguration',
-        replayFolder: 'Replay-Ordner',
-        browse: 'Durchsuchen',
-        openFolder: 'Ordner öffnen',
-        mediaSourceName: 'Medienquelle Name',
-        targetScene: 'Zielszene',
-        autoSwitchScene: 'Szene automatisch wechseln',
-        filters: 'Filter',
-        fileNameFilter: 'Dateiname-Filter',
-        filterPlaceholder: 'z.B.: Replay',
-        backupConfiguration: 'Backup-Konfiguration',
-        export: 'Exportieren',
-        import: 'Importieren',
-        // UI Labels
-        favorites: 'Favoriten',
-        inQueue: 'In Warteschlange',
-        categories: 'Kategorien',
-        search: 'Suchen',
-        searchPlaceholder: 'Nach Dateinamen suchen...',
-        clear: 'Löschen',
-        videos: 'Videos',
-        hiddenVideos: 'Ausgeblendete Videos',
-        showAll: 'Alle anzeigen',
-        noHiddenVideos: 'Keine ausgeblendeten Videos',
-        hiddenVideosWillAppear: 'Ausgeblendete Videos werden hier angezeigt',
-        // Playlist Modal
-        playlist: 'Playlist / Warteschlange',
-        videosInQueue: 'Videos',
-        totalDuration: 'Gesamtdauer',
-        play: 'Abspielen',
-        stop: 'Stopp',
-        loop: 'Schleife',
-        shuffle: 'Mischen',
-        empty: 'Leeren',
-        // Category Dialog
-        newCategoryName: 'Neuer Kategoriename:',
-        renamePrompt: 'Neuer Name für das Video:',
-        deleteCategory: 'Kategorie löschen',
-        renameCategory: 'Umbenennen',
-        changeColor: 'Farbe ändern',
-        confirmDeleteCategory: 'Kategorie löschen',
-        // Themes
-        themes: 'Themen',
-        about: 'Über',
-        // Tooltips
-        favorite: 'Favorit',
-        loadInOBS: 'In OBS laden',
-        addToQueue: 'Zur Warteschlange',
-        // Speed
-        speedLabel: 'Geschwindigkeit',
-        // Updates
-        checkingUpdates: 'Überprüfen...',
-        checkUpdates: 'Nach Updates suchen',
-        // Errors
-        serverError: 'Server-Kommunikationsfehler',
-        errorDeleting: 'Fehler beim Löschen',
-        errorRenaming: 'Fehler beim Umbenennen',
-        fileNotFound: 'Datei nicht gefunden'
-    }
-};
-
+// Translations loaded from external /locales/*.json files
+let translations = {};
 let currentLanguage = 'it'; // Default Italian
+const supportedLanguages = ['en', 'it', 'es', 'fr', 'de'];
 
-function t(key) {
-    return translations[currentLanguage]?.[key] || translations['en']?.[key] || key;
+// Load locale file from server
+async function loadLocale(lang) {
+    try {
+        const response = await fetch(`/api/locale/${lang}`);
+        if (response.ok) {
+            translations[lang] = await response.json();
+            return true;
+        }
+    } catch (e) {
+        console.error(`Failed to load locale ${lang}:`, e);
+    }
+    return false;
 }
 
+// Get translation by dot-notation key (e.g., 'menu.addToFavorites')
+function t(key) {
+    const keys = key.split('.');
+    let value = translations[currentLanguage];
+
+    for (const k of keys) {
+        if (value && typeof value === 'object' && k in value) {
+            value = value[k];
+        } else {
+            // Fallback to English
+            value = translations['en'];
+            for (const k2 of keys) {
+                if (value && typeof value === 'object' && k2 in value) {
+                    value = value[k2];
+                } else {
+                    return key; // Return key if not found
+                }
+            }
+            break;
+        }
+    }
+    return typeof value === 'string' ? value : key;
+}
+
+// Change language and update UI
 async function setLanguage(lang) {
+    if (!supportedLanguages.includes(lang)) return;
+
+    // Load locale if not already loaded
+    if (!translations[lang]) {
+        await loadLocale(lang);
+    }
+
     if (translations[lang]) {
         currentLanguage = lang;
-        document.getElementById('language-select').value = lang;
+        const select = document.getElementById('language-select');
+        if (select) select.value = lang;
+
+        // Save preference to server
         await apiCall('/api/language', 'POST', { language: lang });
+
+        // Update all UI elements
         updateUILanguage();
     }
 }
 
+// Update all translatable UI elements
 function updateUILanguage() {
-    // Update elements with data-i18n attribute
+    // Update elements with data-i18n attribute (text content)
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
-        el.textContent = t(key);
+        const translated = t(key);
+        if (translated !== key) {
+            el.textContent = translated;
+        }
     });
 
-    // Update placeholders
+    // Update elements with data-i18n-placeholder attribute
     document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
         const key = el.getAttribute('data-i18n-placeholder');
-        el.placeholder = t(key);
+        const translated = t(key);
+        if (translated !== key) {
+            el.placeholder = translated;
+        }
     });
 
-    // Re-render dynamic content
-    loadReplays();
-    loadPlaylist();
+    // Update elements with data-i18n-title attribute (tooltips)
+    document.querySelectorAll('[data-i18n-title]').forEach(el => {
+        const key = el.getAttribute('data-i18n-title');
+        const translated = t(key);
+        if (translated !== key) {
+            el.title = translated;
+        }
+    });
+
+    // Re-render dynamic content that uses translations
+    if (typeof loadReplays === 'function') loadReplays();
+    if (typeof loadPlaylist === 'function') loadPlaylist();
+    if (typeof renderCategoryList === 'function') renderCategoryList();
 }
+
+// Initialize i18n - load default and fallback locales
+async function initI18n(defaultLang = 'it') {
+    // Always load English as fallback
+    await loadLocale('en');
+
+    // Load the default/preferred language
+    if (defaultLang !== 'en') {
+        await loadLocale(defaultLang);
+    }
+
+    currentLanguage = defaultLang;
+
+    // Update language selector if it exists
+    const select = document.getElementById('language-select');
+    if (select) select.value = defaultLang;
+}
+
 
 // ==================== GLOBAL STATE ====================
 let allReplays = [];
@@ -4195,11 +3768,22 @@ let currentQueueIndex = 0;
 
 // ==================== INITIALIZATION ====================
 async function init() {
+    // Load config first to get saved language
+    const config = await apiCall('/api/config');
+    const savedLang = config?.current_language || 'it';
+
+    // Initialize i18n with saved language
+    await initI18n(savedLang);
+
+    // Now load the rest of config and apply settings
     await loadConfig();
     await loadCategories();
     await loadReplays();
     await loadVersion();
     startAutoRefresh();
+
+    // Update UI with translations after everything is loaded
+    updateUILanguage();
 
     // Nascondi loading overlay
     const loadingOverlay = document.getElementById('loading-overlay');
@@ -4263,7 +3847,7 @@ async function apiCall(endpoint, method = 'GET', data = null) {
         return await response.json();
     } catch (error) {
         console.error('API Error:', error);
-        showNotification('Errore di comunicazione con il server', 'error');
+        showNotification(t('errors.serverError'), 'error');
         return null;
     }
 }
@@ -4321,10 +3905,10 @@ async function saveOBSSettings() {
     const result = await apiCall('/api/obs-settings', 'POST', settings);
 
     if (result && result.success) {
-        showNotification('Impostazioni salvate', 'success');
+        showNotification(t('notifications.settingsSaved'), 'success');
         await loadReplays();
     } else {
-        showNotification('Errore nel salvataggio', 'error');
+        showNotification(t('errors.serverError'), 'error');
     }
 }
 
@@ -4373,7 +3957,7 @@ async function exportConfig() {
                     const writable = await handle.createWritable();
                     await writable.write(configJson);
                     await writable.close();
-                    showNotification('Configurazione esportata', 'success');
+                    showNotification(t('notifications.configExported'), 'success');
                     return;
                 } catch (e) {
                     // L'utente ha annullato o API non supportata, usa fallback
@@ -4391,7 +3975,7 @@ async function exportConfig() {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            showNotification('Configurazione esportata', 'success');
+            showNotification(t('notifications.configExported'), 'success');
         } else {
             showNotification('Errore esportazione', 'error');
         }
@@ -4426,11 +4010,11 @@ async function handleConfigImport(event) {
         const result = await apiCall('/api/config/import', 'POST', { config });
 
         if (result && result.success) {
-            showNotification('Configurazione importata con successo', 'success');
+            showNotification(t('notifications.configImported'), 'success');
             // Ricarica la pagina per applicare le nuove impostazioni
             setTimeout(() => location.reload(), 1000);
         } else {
-            showNotification('Errore importazione: ' + (result?.error || 'Sconosciuto'), 'error');
+            showNotification(t('notifications.importError'), 'error');
         }
     } catch (e) {
         showNotification('Errore lettura file: ' + e.message, 'error');
@@ -4862,7 +4446,7 @@ async function toggleFavorite(path) {
     const result = await apiCall('/api/toggle-favorite', 'POST', { path });
     if (result && result.success) {
         await loadReplays();
-        showNotification(result.favorite ? t('addedToFavorites') : t('removedFromFavorites'), 'success');
+        showNotification(result.favorite ? t('notifications.addedToFavorites') : t('notifications.removedFromFavorites'), 'success');
     }
 }
 
@@ -4870,16 +4454,16 @@ async function addToQueue(path) {
     const result = await apiCall('/api/queue/add', 'POST', { path });
     if (result && result.success) {
         await loadReplays();
-        showNotification(t('addedToQueue'), 'success');
+        showNotification(t('notifications.addedToQueue'), 'success');
     } else if (result && result.error === 'Already in queue') {
-        showNotification(t('alreadyInQueue'), 'warning');
+        showNotification(t('notifications.alreadyInQueue'), 'warning');
     }
 }
 
 async function loadVideo(path) {
     const result = await apiCall('/api/load', 'POST', { path });
     if (result && result.success) {
-        showNotification(t('videoLoaded'), 'success');
+        showNotification(t('notifications.videoLoaded'), 'success');
         // Forza refresh immediato per mostrare badge
         await loadReplays();
     }
@@ -4889,16 +4473,16 @@ async function hideVideo(path) {
     const result = await apiCall('/api/hide', 'POST', { path });
     if (result && result.success) {
         await loadReplays();
-        showNotification(t('videoHidden'), 'success');
+        showNotification(t('notifications.videoHidden'), 'success');
     }
 }
 
 async function deleteVideo(path, name) {
-    if (confirm(`${t('deleteCategory')} "${name}"?`)) {
+    if (confirm(`${t('dialogs.confirmDelete')} "${name}"?`)) {
         const result = await apiCall('/api/delete', 'POST', { path });
         if (result && result.success) {
             await loadReplays();
-            showNotification(t('videoDeleted'), 'success');
+            showNotification(t('notifications.videoDeleted'), 'success');
         }
     }
 }
@@ -4906,7 +4490,7 @@ async function deleteVideo(path, name) {
 async function setVideoSpeed(path, speed) {
     await loadVideo(path);
     await setGlobalSpeed(speed);
-    showNotification(`${t('videoLoadedSpeed')} ${speed}x`, 'success');
+    showNotification(`${t('notifications.videoLoadedSpeed')} ${speed}x`, 'success');
 }
 
 // ==================== CONTEXT MENU FUNCTIONS ====================
@@ -4917,7 +4501,7 @@ async function renameVideo(path, currentName) {
     const nameWithoutExt = currentName.replace(/\\.[^/.]+$/, '');
     const ext = currentName.slice(nameWithoutExt.length);
 
-    const newName = prompt(t('renamePrompt'), nameWithoutExt);
+    const newName = prompt(t('dialogs.renamePrompt'), nameWithoutExt);
     if (newName && newName.trim() && newName.trim() !== nameWithoutExt) {
         const result = await apiCall('/api/rename', 'POST', {
             path: path,
@@ -4925,9 +4509,9 @@ async function renameVideo(path, currentName) {
         });
         if (result && result.success) {
             await loadReplays();
-            showNotification(t('videoRenamed'), 'success');
+            showNotification(t('notifications.videoRenamed'), 'success');
         } else {
-            showNotification(result?.error || t('renameError'), 'error');
+            showNotification(result?.error || t('notifications.renameError'), 'error');
         }
     }
 }
@@ -4960,32 +4544,32 @@ function showContextMenu(event, cardElement) {
     // Favorite action
     html += `<div class="context-menu-item ${isFav ? 'active' : ''}" onclick="toggleFavorite('${escapedPath}'); hideContextMenu();">`;
     html += `<span class="menu-icon">${isFav ? '★' : '☆'}</span>`;
-    html += `<span>${isFav ? t('removeFromFavorites') : t('addToFavorites')}</span>`;
+    html += `<span>${isFav ? t('menu.removeFromFavorites') : t('menu.addToFavorites')}</span>`;
     html += `</div>`;
 
     // Add to queue
     html += `<div class="context-menu-item" onclick="addToQueue('${escapedPath}'); hideContextMenu();">`;
     html += `<span class="menu-icon">📋</span>`;
-    html += `<span>${t('addToPlaylist')}</span>`;
+    html += `<span>${t('menu.addToPlaylist')}</span>`;
     html += `</div>`;
 
     // Rename video
     const escapedName = replay.name.replace(/'/g, "\\\\'");
     html += `<div class="context-menu-item" onclick="renameVideo('${escapedPath}', '${escapedName}'); hideContextMenu();">`;
     html += `<span class="menu-icon">✏️</span>`;
-    html += `<span>${t('rename')}</span>`;
+    html += `<span>${t('menu.rename')}</span>`;
     html += `</div>`;
 
     html += `<div class="context-menu-separator"></div>`;
 
     // Category header
-    html += `<div class="context-menu-header">${t('category')}</div>`;
+    html += `<div class="context-menu-header">${t('menu.category')}</div>`;
 
     // No category option
     const noCategory = !replay.category;
     html += `<div class="context-menu-category ${noCategory ? 'selected' : ''}" onclick="assignCategory('${escapedPath}', null); hideContextMenu();">`;
     html += `<span class="category-dot" style="background: #555;"></span>`;
-    html += `<span>${t('none')}</span>`;
+    html += `<span>${t('menu.none')}</span>`;
     if (noCategory) html += `<span class="category-check">✓</span>`;
     html += `</div>`;
 
@@ -5001,7 +4585,7 @@ function showContextMenu(event, cardElement) {
     });
 
     if (Object.keys(categories).length === 0) {
-        html += `<div style="padding: 8px 14px; color: var(--text-secondary); font-size: 12px; font-style: italic;">${t('noCategoriesCreated')}</div>`;
+        html += `<div style="padding: 8px 14px; color: var(--text-secondary); font-size: 12px; font-style: italic;">${t('menu.noCategoriesCreated')}</div>`;
     }
 
     menu.innerHTML = html;
@@ -5054,7 +4638,7 @@ async function assignCategory(videoPath, categoryName) {
 
     if (result && result.success) {
         await loadReplays();
-        showNotification(categoryName ? `${t('categoryAssigned')}: ${categoryName}` : t('categoryRemoved'), 'success');
+        showNotification(categoryName ? `${t('notifications.categoryAssigned')}: ${categoryName}` : t('notifications.categoryRemoved'), 'success');
     }
     hideContextMenu();
 }
@@ -5118,14 +4702,14 @@ function renderPlaylist() {
 
 async function playPlaylist() {
     if (playlistQueue.length === 0) {
-        showNotification('Playlist vuota', 'warning');
+        showNotification(t('playlist.empty'), 'warning');
         return;
     }
 
     playlistIsPlaying = true;
     currentQueueIndex = 0;
     await playVideoFromQueue(0);
-    showNotification('Playlist avviata', 'success');
+    showNotification(t('playlist.started'), 'success');
 }
 
 async function playVideoFromQueue(index) {
@@ -5140,7 +4724,7 @@ async function playVideoFromQueue(index) {
         } else {
             // Stop
             stopPlaylist();
-            showNotification('Playlist completata', 'success');
+            showNotification(t('playlist.completed'), 'success');
         }
         return;
     }
@@ -5176,7 +4760,7 @@ function stopPlaylist() {
     playlistIsPlaying = false;
     const nowPlaying = document.getElementById('now-playing');
     nowPlaying.classList.remove('active');
-    showNotification('Playlist fermata', 'info');
+    showNotification(t('playlist.stopped'), 'info');
 }
 
 async function playNextInQueue() {
@@ -5192,7 +4776,7 @@ async function playNextInQueue() {
             showNotification('Prossimo video caricato', 'success');
         } else {
             stopPlaylist();
-            showNotification('Playlist completata', 'success');
+            showNotification(t('playlist.completed'), 'success');
         }
     }
 }
@@ -5205,12 +4789,12 @@ function toggleLoop() {
         btn.classList.add('active');
         btn.style.background = 'var(--accent-primary)';
         btn.style.color = 'white';
-        showNotification('Loop playlist attivato', 'success');
+        showNotification(t('playlist.loopEnabled'), 'success');
     } else {
         btn.classList.remove('active');
         btn.style.background = '';
         btn.style.color = '';
-        showNotification('Loop playlist disattivato', 'info');
+        showNotification(t('playlist.loopDisabled'), 'info');
     }
 }
 
@@ -5224,7 +4808,7 @@ async function shufflePlaylist() {
     }
 
     renderPlaylist();
-    showNotification('Playlist mescolata', 'success');
+    showNotification(t('playlist.shuffled'), 'success');
 }
 
 async function clearPlaylist() {
@@ -5233,7 +4817,7 @@ async function clearPlaylist() {
         if (result && result.success) {
             await loadPlaylist();
             renderPlaylist();
-            showNotification('Playlist svuotata', 'success');
+            showNotification(t('playlist.cleared'), 'success');
         }
     }
 }
@@ -5244,7 +4828,7 @@ async function removeFromPlaylist(queueIndex) {
         await loadPlaylist();
         await loadReplays(); // Refresh to update queue badges
         renderPlaylist();
-        showNotification('Rimosso dalla coda', 'success');
+        showNotification(t('playlist.removedFromQueue'), 'success');
     }
 }
 
@@ -5702,9 +5286,9 @@ async function addCategory() {
     if (result && result.success) {
         nameInput.value = '';
         await loadCategories();
-        showNotification('Categoria creata', 'success');
+        showNotification(t('notifications.categoryCreated'), 'success');
     } else {
-        showNotification('Errore: nome duplicato o non valido', 'error');
+        showNotification(t('notifications.duplicateOrInvalidName'), 'error');
     }
 }
 
@@ -5719,7 +5303,7 @@ async function renameCategory(oldName) {
         if (result && result.success) {
             await loadCategories();
             await loadReplays();
-            showNotification('Categoria rinominata', 'success');
+            showNotification(t('notifications.categoryRenamed'), 'success');
         } else {
             showNotification(result?.error || 'Errore nella rinomina', 'error');
         }
@@ -5735,9 +5319,9 @@ async function changeCategoryColor(name, newColor) {
     if (result && result.success) {
         await loadCategories();
         await loadReplays();
-        showNotification('Colore aggiornato', 'success');
+        showNotification(t('notifications.colorUpdated'), 'success');
     } else {
-        showNotification('Errore aggiornamento colore', 'error');
+        showNotification(t('notifications.errorUpdatingColor'), 'error');
     }
 }
 
@@ -5788,7 +5372,7 @@ async function deleteCategory(name) {
         if (result && result.success) {
             await loadCategories();
             await loadReplays();
-            showNotification('Categoria eliminata', 'success');
+            showNotification(t('notifications.categoryDeleted'), 'success');
         }
     }
 }
@@ -6181,7 +5765,7 @@ def start_server(port=None):
         server_instance = HTTPServer(('localhost', SERVER_PORT), ReplayAPIHandler)
         server_thread = threading.Thread(target=server_instance.serve_forever, daemon=True)
         server_thread.start()
-        print(f"✓ Server HTTP v4 avviato su http://localhost:{SERVER_PORT}")
+        print(f"✓ Server HTTP avviato su http://localhost:{SERVER_PORT}")
         return True
     except Exception as e:
         print(f"✗ Errore server: {e}")

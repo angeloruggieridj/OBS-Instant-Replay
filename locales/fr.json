@@ -1,0 +1,151 @@
+{
+  "app": {
+    "title": "Replay Manager"
+  },
+  "menu": {
+    "addToFavorites": "Ajouter aux favoris",
+    "removeFromFavorites": "Retirer des favoris",
+    "addToPlaylist": "Ajouter à la playlist",
+    "rename": "Renommer",
+    "category": "Catégorie",
+    "none": "Aucune",
+    "noCategoriesCreated": "Aucune catégorie créée"
+  },
+  "notifications": {
+    "addedToFavorites": "Ajouté aux favoris",
+    "removedFromFavorites": "Retiré des favoris",
+    "addedToQueue": "Ajouté à la file",
+    "alreadyInQueue": "Vidéo déjà dans la file",
+    "videoLoaded": "Vidéo chargée (prête à jouer)",
+    "videoLoadedSpeed": "Vidéo chargée à la vitesse",
+    "videoHidden": "Vidéo masquée",
+    "videoDeleted": "Vidéo supprimée",
+    "videoRenamed": "Vidéo renommée",
+    "renameError": "Erreur de renommage",
+    "categoryAssigned": "Catégorie attribuée",
+    "categoryRemoved": "Catégorie supprimée",
+    "categoryRenamed": "Catégorie renommée",
+    "categoryDeleted": "Catégorie supprimée",
+    "categoryCreated": "Catégorie créée",
+    "colorUpdated": "Couleur mise à jour",
+    "errorUpdatingColor": "Erreur mise à jour couleur",
+    "duplicateOrInvalidName": "Nom en double ou invalide",
+    "settingsSaved": "Paramètres enregistrés",
+    "configExported": "Configuration exportée",
+    "configImported": "Configuration importée",
+    "importError": "Erreur d'importation"
+  },
+  "playlist": {
+    "title": "Playlist / File",
+    "empty": "File vide",
+    "addVideosFromGrid": "Ajouter des vidéos depuis la grille",
+    "started": "Playlist démarrée",
+    "completed": "Playlist terminée",
+    "stopped": "Playlist arrêtée",
+    "shuffled": "Playlist mélangée",
+    "cleared": "File vidée",
+    "removedFromQueue": "Retiré de la file",
+    "loopEnabled": "Boucle activée",
+    "loopDisabled": "Boucle désactivée",
+    "nowPlaying": "En lecture",
+    "playbackQueue": "File de lecture",
+    "createHighlights": "Créer Highlights depuis la file",
+    "videosInQueue": "vidéos",
+    "totalDuration": "Durée totale"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "general": "Général",
+    "language": "Langue",
+    "interfaceLanguage": "Langue de l'interface",
+    "obsConfiguration": "Configuration OBS",
+    "replayFolder": "Dossier Replays",
+    "browse": "Parcourir",
+    "openFolder": "Ouvrir dossier",
+    "mediaSourceName": "Nom Source Média",
+    "targetScene": "Scène Cible",
+    "autoSwitchScene": "Changer de scène automatiquement au chargement",
+    "filters": "Filtres",
+    "fileNameFilter": "Filtre nom fichier",
+    "filterDescription": "Afficher uniquement les fichiers commençant par ce texte",
+    "filterPlaceholder": "ex: Replay",
+    "saveSettings": "Enregistrer Paramètres",
+    "backupConfiguration": "Sauvegarde Configuration",
+    "backupDescription": "Exporter ou importer toutes les configurations, catégories et favoris",
+    "export": "Exporter",
+    "import": "Importer"
+  },
+  "categories": {
+    "newCategory": "Nouvelle Catégorie",
+    "add": "Ajouter",
+    "yourCategories": "Vos Catégories",
+    "categoryNamePlaceholder": "Nom catégorie..."
+  },
+  "ui": {
+    "favorites": "Favoris",
+    "inQueue": "Dans la file",
+    "categories": "Catégories",
+    "search": "Rechercher",
+    "searchPlaceholder": "Rechercher par nom de fichier...",
+    "clear": "Effacer",
+    "videos": "vidéos",
+    "hiddenVideos": "Vidéos Masquées",
+    "showAll": "Afficher tout",
+    "noHiddenVideos": "Aucune vidéo masquée",
+    "hiddenVideosWillAppear": "Les vidéos masquées apparaîtront ici",
+    "all": "Tous"
+  },
+  "controls": {
+    "play": "Lecture",
+    "stop": "Arrêt",
+    "loop": "Boucle",
+    "shuffle": "Mélanger",
+    "empty": "Vider"
+  },
+  "dialogs": {
+    "newCategoryName": "Nouveau nom de catégorie:",
+    "renamePrompt": "Nouveau nom pour la vidéo:",
+    "confirmDelete": "Supprimer définitivement",
+    "confirmDeleteCategory": "Supprimer la catégorie"
+  },
+  "themes": {
+    "title": "Thèmes",
+    "dark": "Sombre",
+    "light": "Clair",
+    "blue": "Bleu",
+    "green": "Vert",
+    "classic": "Classique"
+  },
+  "about": {
+    "title": "À propos",
+    "version": "Version",
+    "checkUpdates": "Vérifier mises à jour",
+    "checking": "Vérification...",
+    "updateAvailable": "Mise à jour disponible",
+    "upToDate": "À jour",
+    "channel": "Canal de mise à jour",
+    "stable": "Stable",
+    "beta": "Bêta"
+  },
+  "tooltips": {
+    "favorite": "Favori",
+    "loadInOBS": "Charger dans OBS",
+    "addToQueue": "Ajouter à la file",
+    "hide": "Masquer",
+    "delete": "Supprimer"
+  },
+  "speed": {
+    "label": "Vitesse"
+  },
+  "errors": {
+    "serverError": "Erreur de communication serveur",
+    "errorDeleting": "Erreur suppression",
+    "errorRenaming": "Erreur renommage",
+    "fileNotFound": "Fichier non trouvé"
+  },
+  "categoryMenu": {
+    "rename": "Renommer",
+    "changeColor": "Changer couleur",
+    "delete": "Supprimer"
+  }
+}

@@ -1,0 +1,151 @@
+{
+  "app": {
+    "title": "Replay Manager"
+  },
+  "menu": {
+    "addToFavorites": "Aggiungi a preferiti",
+    "removeFromFavorites": "Rimuovi da preferiti",
+    "addToPlaylist": "Aggiungi a playlist",
+    "rename": "Rinomina",
+    "category": "Categoria",
+    "none": "Nessuna",
+    "noCategoriesCreated": "Nessuna categoria creata"
+  },
+  "notifications": {
+    "addedToFavorites": "Aggiunto ai preferiti",
+    "removedFromFavorites": "Rimosso dai preferiti",
+    "addedToQueue": "Aggiunto alla coda",
+    "alreadyInQueue": "Video già in coda",
+    "videoLoaded": "Video caricato (pronto per avvio)",
+    "videoLoadedSpeed": "Video caricato a velocità",
+    "videoHidden": "Video nascosto",
+    "videoDeleted": "Video eliminato",
+    "videoRenamed": "Video rinominato",
+    "renameError": "Errore nella rinomina",
+    "categoryAssigned": "Categoria assegnata",
+    "categoryRemoved": "Categoria rimossa",
+    "categoryRenamed": "Categoria rinominata",
+    "categoryDeleted": "Categoria eliminata",
+    "categoryCreated": "Categoria creata",
+    "colorUpdated": "Colore aggiornato",
+    "errorUpdatingColor": "Errore aggiornamento colore",
+    "duplicateOrInvalidName": "Nome duplicato o non valido",
+    "settingsSaved": "Impostazioni salvate",
+    "configExported": "Configurazione esportata",
+    "configImported": "Configurazione importata",
+    "importError": "Errore importazione"
+  },
+  "playlist": {
+    "title": "Playlist / Coda",
+    "empty": "Coda vuota",
+    "addVideosFromGrid": "Aggiungi video dalla griglia",
+    "started": "Playlist avviata",
+    "completed": "Playlist completata",
+    "stopped": "Playlist fermata",
+    "shuffled": "Playlist mescolata",
+    "cleared": "Coda svuotata",
+    "removedFromQueue": "Rimosso dalla coda",
+    "loopEnabled": "Loop attivato",
+    "loopDisabled": "Loop disattivato",
+    "nowPlaying": "In riproduzione",
+    "playbackQueue": "Coda Riproduzione",
+    "createHighlights": "Crea Highlights dalla coda",
+    "videosInQueue": "video",
+    "totalDuration": "Durata totale"
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "general": "Generale",
+    "language": "Lingua",
+    "interfaceLanguage": "Lingua interfaccia",
+    "obsConfiguration": "Configurazione OBS",
+    "replayFolder": "Cartella Replay",
+    "browse": "Sfoglia",
+    "openFolder": "Apri cartella",
+    "mediaSourceName": "Nome Sorgente Media",
+    "targetScene": "Scena Target",
+    "autoSwitchScene": "Cambia scena automaticamente al caricamento",
+    "filters": "Filtri",
+    "fileNameFilter": "Filtro nome file",
+    "filterDescription": "Mostra solo file che iniziano con questo testo",
+    "filterPlaceholder": "es: Replay",
+    "saveSettings": "Salva Impostazioni",
+    "backupConfiguration": "Backup Configurazione",
+    "backupDescription": "Esporta o importa tutte le configurazioni, categorie e preferiti",
+    "export": "Esporta",
+    "import": "Importa"
+  },
+  "categories": {
+    "newCategory": "Nuova Categoria",
+    "add": "Aggiungi",
+    "yourCategories": "Le Tue Categorie",
+    "categoryNamePlaceholder": "Nome categoria..."
+  },
+  "ui": {
+    "favorites": "Preferiti",
+    "inQueue": "In coda",
+    "categories": "Categorie",
+    "search": "Cerca",
+    "searchPlaceholder": "Cerca per nome file...",
+    "clear": "Cancella",
+    "videos": "video",
+    "hiddenVideos": "Video Nascosti",
+    "showAll": "Mostra tutti",
+    "noHiddenVideos": "Nessun video nascosto",
+    "hiddenVideosWillAppear": "I video nascosti appariranno qui",
+    "all": "Tutti"
+  },
+  "controls": {
+    "play": "Play",
+    "stop": "Stop",
+    "loop": "Loop",
+    "shuffle": "Mescola",
+    "empty": "Svuota"
+  },
+  "dialogs": {
+    "newCategoryName": "Nuovo nome categoria:",
+    "renamePrompt": "Nuovo nome per il video:",
+    "confirmDelete": "Eliminare definitivamente",
+    "confirmDeleteCategory": "Eliminare la categoria"
+  },
+  "themes": {
+    "title": "Temi",
+    "dark": "Scuro",
+    "light": "Chiaro",
+    "blue": "Blu",
+    "green": "Verde",
+    "classic": "Classico"
+  },
+  "about": {
+    "title": "Info",
+    "version": "Versione",
+    "checkUpdates": "Verifica aggiornamenti",
+    "checking": "Verificando...",
+    "updateAvailable": "Aggiornamento disponibile",
+    "upToDate": "Aggiornato",
+    "channel": "Canale aggiornamenti",
+    "stable": "Stabile",
+    "beta": "Beta"
+  },
+  "tooltips": {
+    "favorite": "Preferito",
+    "loadInOBS": "Carica in OBS",
+    "addToQueue": "Aggiungi a coda",
+    "hide": "Nascondi",
+    "delete": "Elimina"
+  },
+  "speed": {
+    "label": "Velocità"
+  },
+  "errors": {
+    "serverError": "Errore comunicazione server",
+    "errorDeleting": "Errore eliminazione",
+    "errorRenaming": "Errore rinomina",
+    "fileNotFound": "File non trovato"
+  },
+  "categoryMenu": {
+    "rename": "Rinomina",
+    "changeColor": "Cambia colore",
+    "delete": "Elimina"
+  }
+}
