@@ -33,7 +33,14 @@
     "settingsSaved": "Einstellungen gespeichert",
     "configExported": "Konfiguration exportiert",
     "configImported": "Konfiguration importiert",
-    "importError": "Importfehler"
+    "importError": "Importfehler",
+    "folderSelected": "Ordner ausgewählt",
+    "exportError": "Exportfehler",
+    "fileReadError": "Fehler beim Lesen der Datei",
+    "nextVideoLoaded": "Nächstes Video geladen",
+    "openingFolder": "Ordner wird geöffnet...",
+    "videoRestored": "Video wiederhergestellt",
+    "allVideosRestored": "Alle Videos wiederhergestellt"
   },
   "playlist": {
     "title": "Playlist / Warteschlange",
@@ -51,7 +58,12 @@
     "playbackQueue": "Wiedergabe-Warteschlange",
     "createHighlights": "Highlights aus Warteschlange erstellen",
     "videosInQueue": "Videos",
-    "totalDuration": "Gesamtdauer"
+    "totalDuration": "Gesamtdauer",
+    "movedToTop": "Nach oben verschoben",
+    "movedToBottom": "Nach unten verschoben",
+    "movedUp": "Nach oben verschoben",
+    "movedDown": "Nach unten verschoben",
+    "noVideosInQueue": "Keine Videos in der Warteschlange"
   },
   "settings": {
     "title": "Einstellungen",
@@ -108,7 +120,8 @@
     "newCategoryName": "Neuer Kategoriename:",
     "renamePrompt": "Neuer Name für das Video:",
     "confirmDelete": "Endgültig löschen",
-    "confirmDeleteCategory": "Kategorie löschen"
+    "confirmDeleteCategory": "Kategorie löschen",
+    "confirmUnhideAll": "Alle ausgeblendeten Videos anzeigen?"
   },
   "themes": {
     "title": "Themen",
@@ -123,18 +136,36 @@
     "version": "Version",
     "checkUpdates": "Nach Updates suchen",
     "checking": "Überprüfen...",
-    "updateAvailable": "Update verfügbar",
+    "updateAvailable": "Update verfügbar!",
     "upToDate": "Aktuell",
     "channel": "Update-Kanal",
     "stable": "Stabil",
-    "beta": "Beta"
+    "beta": "Beta",
+    "updating": "Aktualisierung...",
+    "errorChecking": "Fehler bei Update-Prüfung",
+    "checkError": "Fehler bei der Überprüfung",
+    "noReleaseNotes": "Keine Versionshinweise",
+    "installAll": "Alle installieren",
+    "newVersionAvailable": "Neue Version verfügbar",
+    "alreadyLatest": "Sie haben die neueste Version",
+    "alreadyUpToDate": "Bereits aktuell!",
+    "updateChannel": "Update-Kanal",
+    "betaChannel": "Beta (inkl. Pre-Release)",
+    "stableChannel": "Stabil"
   },
   "tooltips": {
     "favorite": "Favorit",
     "loadInOBS": "In OBS laden",
     "addToQueue": "Zur Warteschlange",
     "hide": "Ausblenden",
-    "delete": "Löschen"
+    "delete": "Löschen",
+    "playlist": "Playlist",
+    "highlights": "Highlights",
+    "refresh": "Aktualisieren",
+    "moveToTop": "Nach oben verschieben",
+    "moveUp": "Nach oben",
+    "moveDown": "Nach unten",
+    "moveToBottom": "Nach unten verschieben"
   },
   "speed": {
     "label": "Geschwindigkeit"
@@ -143,11 +174,30 @@
     "serverError": "Server-Kommunikationsfehler",
     "errorDeleting": "Fehler beim Löschen",
     "errorRenaming": "Fehler beim Umbenennen",
-    "fileNotFound": "Datei nicht gefunden"
+    "fileNotFound": "Datei nicht gefunden",
+    "dialogError": "Fehler beim Öffnen des Dialogs",
+    "invalidConfigFile": "Ungültige Konfigurationsdatei",
+    "fileAlreadyExists": "Datei mit diesem Namen existiert bereits"
   },
   "categoryMenu": {
     "rename": "Umbenennen",
     "changeColor": "Farbe ändern",
     "delete": "Löschen"
+  },
+  "highlights": {
+    "title": "Erstellte Highlights",
+    "howToCreate": "Highlights erstellen:",
+    "howToCreateDesc": "Fügen Sie Videos zur Warteschlange hinzu, ordnen Sie sie nach Belieben an und klicken Sie dann auf \"Highlights aus Warteschlange erstellen\" im Playlist-Bereich.",
+    "load": "Laden",
+    "loaded": "Highlights in OBS geladen",
+    "deleted": "Highlights gelöscht",
+    "created": "Highlights erstellt",
+    "creating": "Highlights werden erstellt...",
+    "confirmCreate": "Highlights erstellen aus",
+    "confirmLoad": "Highlights-Video jetzt laden?",
+    "errorCreating": "Fehler beim Erstellen der Highlights",
+    "errorLoading": "Fehler beim Laden der Highlights",
+    "errorDeleting": "Fehler beim Löschen der Highlights",
+    "confirmDeleteHighlight": "Diese Highlights löschen?"
   }
 }

@@ -33,7 +33,14 @@
     "settingsSaved": "Settings saved",
     "configExported": "Configuration exported",
     "configImported": "Configuration imported",
-    "importError": "Import error"
+    "importError": "Import error",
+    "folderSelected": "Folder selected",
+    "exportError": "Export error",
+    "fileReadError": "File read error",
+    "nextVideoLoaded": "Next video loaded",
+    "openingFolder": "Opening folder...",
+    "videoRestored": "Video restored",
+    "allVideosRestored": "All videos restored"
   },
   "playlist": {
     "title": "Playlist / Queue",
@@ -51,7 +58,12 @@
     "playbackQueue": "Playback Queue",
     "createHighlights": "Create Highlights from queue",
     "videosInQueue": "videos",
-    "totalDuration": "Total duration"
+    "totalDuration": "Total duration",
+    "movedToTop": "Moved to top",
+    "movedToBottom": "Moved to bottom",
+    "movedUp": "Moved up",
+    "movedDown": "Moved down",
+    "noVideosInQueue": "No videos in queue"
   },
   "settings": {
     "title": "Settings",
@@ -108,7 +120,8 @@
     "newCategoryName": "New category name:",
     "renamePrompt": "New name for the video:",
     "confirmDelete": "Permanently delete",
-    "confirmDeleteCategory": "Delete category"
+    "confirmDeleteCategory": "Delete category",
+    "confirmUnhideAll": "Show all hidden videos?"
   },
   "themes": {
     "title": "Themes",
@@ -123,18 +136,36 @@
     "version": "Version",
     "checkUpdates": "Check Updates",
     "checking": "Checking...",
-    "updateAvailable": "Update available",
+    "updateAvailable": "Update available!",
     "upToDate": "Up to date",
     "channel": "Update channel",
     "stable": "Stable",
-    "beta": "Beta"
+    "beta": "Beta",
+    "updating": "Updating...",
+    "errorChecking": "Error checking updates",
+    "checkError": "Error during check",
+    "noReleaseNotes": "No release notes",
+    "installAll": "Install all",
+    "newVersionAvailable": "New version available",
+    "alreadyLatest": "You have the latest version",
+    "alreadyUpToDate": "Already up to date!",
+    "updateChannel": "Update channel",
+    "betaChannel": "Beta (includes pre-release)",
+    "stableChannel": "Stable"
   },
   "tooltips": {
     "favorite": "Favorite",
     "loadInOBS": "Load in OBS",
     "addToQueue": "Add to queue",
     "hide": "Hide",
-    "delete": "Delete"
+    "delete": "Delete",
+    "playlist": "Playlist",
+    "highlights": "Highlights",
+    "refresh": "Refresh",
+    "moveToTop": "Move to top",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "moveToBottom": "Move to bottom"
   },
   "speed": {
     "label": "Speed"
@@ -143,11 +174,30 @@
     "serverError": "Server communication error",
     "errorDeleting": "Error deleting",
     "errorRenaming": "Error renaming",
-    "fileNotFound": "File not found"
+    "fileNotFound": "File not found",
+    "dialogError": "Error opening dialog",
+    "invalidConfigFile": "Invalid configuration file",
+    "fileAlreadyExists": "File with this name already exists"
   },
   "categoryMenu": {
     "rename": "Rename",
     "changeColor": "Change color",
     "delete": "Delete"
+  },
+  "highlights": {
+    "title": "Created Highlights",
+    "howToCreate": "How to create highlights:",
+    "howToCreateDesc": "Add videos to the queue, reorder as you like, then click \"Create Highlights from queue\" in the Playlist section.",
+    "load": "Load",
+    "loaded": "Highlights loaded in OBS",
+    "deleted": "Highlights deleted",
+    "created": "Highlights created",
+    "creating": "Creating highlights...",
+    "confirmCreate": "Create highlights from",
+    "confirmLoad": "Load highlights video now?",
+    "errorCreating": "Error creating highlights",
+    "errorLoading": "Error loading highlights",
+    "errorDeleting": "Error deleting highlights",
+    "confirmDeleteHighlight": "Delete this highlights?"
   }
 }

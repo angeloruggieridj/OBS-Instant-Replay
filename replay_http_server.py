@@ -3150,13 +3150,13 @@ body {
                 <span class="btn-icon">🔍</span>
                 <span class="btn-text" data-i18n="ui.search">Cerca</span>
             </button>
-            <button class="header-btn" onclick="openPlaylistModal()" title="Playlist">
+            <button class="header-btn" onclick="openPlaylistModal()" data-i18n-title="tooltips.playlist" title="Playlist">
                 <span class="btn-icon">📋</span>
-                <span class="btn-text">Playlist</span>
+                <span class="btn-text" data-i18n="tooltips.playlist">Playlist</span>
             </button>
-            <button class="header-btn" onclick="openHighlightsModal()" title="Highlights">
+            <button class="header-btn" onclick="openHighlightsModal()" data-i18n-title="tooltips.highlights" title="Highlights">
                 <span class="btn-icon">✨</span>
-                <span class="btn-text">Highlights</span>
+                <span class="btn-text" data-i18n="tooltips.highlights">Highlights</span>
             </button>
             <button class="header-btn" onclick="openSettingsModal()" data-i18n-title="settings.title" title="Settings">
                 <span class="btn-icon">⚙️</span>
@@ -3166,9 +3166,9 @@ body {
                 <span class="btn-icon">👁️</span>
                 <span class="btn-text" data-i18n="ui.hiddenVideos">Nascosti</span>
             </button>
-            <button class="header-btn" onclick="refreshReplays()" title="Refresh">
+            <button class="header-btn" onclick="refreshReplays()" data-i18n-title="tooltips.refresh" title="Refresh">
                 <span class="btn-icon">🔄</span>
-                <span class="btn-text">Refresh</span>
+                <span class="btn-text" data-i18n="tooltips.refresh">Refresh</span>
             </button>
         </div>
 
@@ -3303,7 +3303,7 @@ body {
 <div class="modal" id="highlights-modal">
     <div class="modal-content" style="width: 700px;">
         <div class="modal-header">
-            <h2>✨ Highlights Creati</h2>
+            <h2>✨ <span data-i18n="highlights.title">Highlights Creati</span></h2>
             <button class="modal-close-btn" onclick="closeHighlightsModal()">✕</button>
         </div>
 
@@ -3313,7 +3313,7 @@ body {
             </div>
 
             <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color); color: var(--text-secondary); font-size: 13px;">
-                💡 <strong>Come creare highlights:</strong> Aggiungi video alla coda, riordina come preferisci, poi clicca "Crea Highlights da coda" nella sezione Playlist.
+                💡 <strong data-i18n="highlights.howToCreate">Come creare highlights:</strong> <span data-i18n="highlights.howToCreateDesc">Aggiungi video alla coda, riordina come preferisci, poi clicca "Crea Highlights da coda" nella sezione Playlist.</span>
             </div>
         </div>
     </div>
@@ -3924,12 +3924,12 @@ async function browseFolder() {
 
         if (result && result.success && result.path) {
             document.getElementById('replay-folder-path').value = result.path;
-            showNotification('Cartella selezionata', 'success');
+            showNotification(t('notifications.folderSelected'), 'success');
         } else if (result && !result.success) {
             // L'utente ha annullato, nessun messaggio di errore
         }
     } catch (e) {
-        showNotification('Errore apertura dialog', 'error');
+        showNotification(t('errors.dialogError'), 'error');
     }
 
     btn.innerHTML = originalText;
@@ -3977,10 +3977,10 @@ async function exportConfig() {
             URL.revokeObjectURL(url);
             showNotification(t('notifications.configExported'), 'success');
         } else {
-            showNotification('Errore esportazione', 'error');
+            showNotification(t('notifications.exportError'), 'error');
         }
     } catch (e) {
-        showNotification('Errore esportazione: ' + e.message, 'error');
+        showNotification(t('notifications.exportError') + ': ' + e.message, 'error');
     }
 }
 
@@ -3998,7 +3998,7 @@ async function handleConfigImport(event) {
 
         // Verifica che sia un file di configurazione valido
         if (!config.version || !config.settings) {
-            showNotification('File di configurazione non valido', 'error');
+            showNotification(t('errors.invalidConfigFile'), 'error');
             return;
         }
 
@@ -4017,7 +4017,7 @@ async function handleConfigImport(event) {
             showNotification(t('notifications.importError'), 'error');
         }
     } catch (e) {
-        showNotification('Errore lettura file: ' + e.message, 'error');
+        showNotification(t('notifications.fileReadError') + ': ' + e.message, 'error');
     }
 
     // Reset input file
@@ -4046,10 +4046,10 @@ async function loadReplays() {
 }
 
 async function refreshReplays() {
-    showNotification('Aggiornamento in corso...', 'info');
+    showNotification(t('about.updating'), 'info');
     await apiCall('/api/scan');
     await loadReplays();
-    showNotification('Aggiornamento completato', 'success');
+    showNotification(t('about.upToDate'), 'success');
 }
 
 // ==================== HEADER FUNCTIONS ====================
@@ -4139,8 +4139,8 @@ async function renderHighlights() {
                 </div>
             </div>
             <div style="display: flex; gap: 8px;">
-                <button class="video-action-btn" onclick="loadHighlightFile('${h.path.replace(/'/g, "\\'")}');" title="Carica in OBS" style="padding: 8px 12px;">▶️ Carica</button>
-                <button class="video-action-btn" onclick="deleteHighlightFile('${h.path.replace(/'/g, "\\'")}');" title="Elimina" style="padding: 8px 12px; color: var(--accent-danger);">🗑️</button>
+                <button class="video-action-btn" onclick="loadHighlightFile('${h.path.replace(/'/g, "\\'")}');" title="${t('tooltips.loadInOBS')}" style="padding: 8px 12px;">▶️ ${t('highlights.load')}</button>
+                <button class="video-action-btn" onclick="deleteHighlightFile('${h.path.replace(/'/g, "\\'")}');" title="${t('tooltips.delete')}" style="padding: 8px 12px; color: var(--accent-danger);">🗑️</button>
             </div>
         </div>
     `).join('');
@@ -4149,15 +4149,15 @@ async function renderHighlights() {
 async function loadHighlightFile(path) {
     await loadVideo(path);
     closeHighlightsModal();
-    showNotification('Highlights caricato in OBS', 'success');
+    showNotification(t('highlights.loaded'), 'success');
 }
 
 async function deleteHighlightFile(filePath) {
-    if (!confirm('Eliminare questo file highlights?')) return;
+    if (!confirm(t('dialogs.confirmDelete') + '?')) return;
     await apiCall('/api/delete', 'POST', { path: filePath });
     await loadReplays();
     await renderHighlights();
-    showNotification('Highlights eliminato', 'success');
+    showNotification(t('highlights.deleted'), 'success');
     document.getElementById('highlights-modal').classList.remove('active');
 }
 
@@ -4688,10 +4688,10 @@ function renderPlaylist() {
             <span class="playlist-item-index">#${index + 1}</span>
             <span class="playlist-item-name">${item.name}</span>
             <div class="playlist-item-controls">
-                <button class="playlist-item-control-btn" onclick="moveQueueItemToTop(${index})" title="Sposta in cima">⬆️⬆️</button>
-                <button class="playlist-item-control-btn" onclick="moveQueueItemUp(${index})" title="Sposta su">⬆️</button>
-                <button class="playlist-item-control-btn" onclick="moveQueueItemDown(${index})" title="Sposta giù">⬇️</button>
-                <button class="playlist-item-control-btn" onclick="moveQueueItemToBottom(${index})" title="Sposta in fondo">⬇️⬇️</button>
+                <button class="playlist-item-control-btn" onclick="moveQueueItemToTop(${index})" title="${t('tooltips.moveToTop')}">⬆️⬆️</button>
+                <button class="playlist-item-control-btn" onclick="moveQueueItemUp(${index})" title="${t('tooltips.moveUp')}">⬆️</button>
+                <button class="playlist-item-control-btn" onclick="moveQueueItemDown(${index})" title="${t('tooltips.moveDown')}">⬇️</button>
+                <button class="playlist-item-control-btn" onclick="moveQueueItemToBottom(${index})" title="${t('tooltips.moveToBottom')}">⬇️⬇️</button>
                 <button class="playlist-item-remove" onclick="removeFromPlaylist(${index})">✕</button>
             </div>
         </div>
@@ -4773,7 +4773,7 @@ async function playNextInQueue() {
             if (playlistQueue.length > 0) {
                 nowPlayingTitle.textContent = playlistQueue[0].name;
             }
-            showNotification('Prossimo video caricato', 'success');
+            showNotification(t('notifications.nextVideoLoaded'), 'success');
         } else {
             stopPlaylist();
             showNotification(t('playlist.completed'), 'success');
@@ -4838,7 +4838,7 @@ async function moveQueueItemToTop(index) {
     if (result && result.success) {
         await loadPlaylist();
         renderPlaylist();
-        showNotification('Spostato in cima', 'success');
+        showNotification(t('playlist.movedToTop'), 'success');
     }
 }
 
@@ -4848,7 +4848,7 @@ async function moveQueueItemUp(index) {
     if (result && result.success) {
         await loadPlaylist();
         renderPlaylist();
-        showNotification('Spostato su', 'success');
+        showNotification(t('playlist.movedUp'), 'success');
     }
 }
 
@@ -4858,7 +4858,7 @@ async function moveQueueItemDown(index) {
     if (result && result.success) {
         await loadPlaylist();
         renderPlaylist();
-        showNotification('Spostato giù', 'success');
+        showNotification(t('playlist.movedDown'), 'success');
     }
 }
 
@@ -4868,28 +4868,27 @@ async function moveQueueItemToBottom(index) {
     if (result && result.success) {
         await loadPlaylist();
         renderPlaylist();
-        showNotification('Spostato in fondo', 'success');
+        showNotification(t('playlist.movedToBottom'), 'success');
     }
 }
 
 async function createHighlightsFromQueue() {
     if (playlistQueue.length === 0) {
-        showNotification('Nessun video in coda', 'warning');
+        showNotification(t('playlist.noVideosInQueue'), 'warning');
         return;
     }
 
-    if (!confirm(`Creare highlights da ${playlistQueue.length} video?`)) {
+    if (!confirm(`${t('highlights.confirmCreate')} ${playlistQueue.length} video?`)) {
         return;
     }
 
-    showNotification('Creazione highlights in corso...', 'info');
+    showNotification(t('highlights.creating'), 'info');
 
     const result = await apiCall('/api/create-highlights', 'POST', { use_queue: true });
     if (result && result.success) {
-        showNotification(`Highlights creato: ${result.name}`, 'success');
+        showNotification(`${t('highlights.created')}: ${result.name}`, 'success');
 
-        // Mostra bottone per caricare
-        if (confirm('Caricare il video highlights ora?')) {
+        if (confirm(t('highlights.confirmLoad'))) {
             await refreshReplays();
             const highlightsVideo = allReplays.find(r => r.name === result.name);
             if (highlightsVideo) {
@@ -4897,7 +4896,7 @@ async function createHighlightsFromQueue() {
             }
         }
     } else {
-        showNotification('Errore creazione highlights: ' + (result?.error || 'Unknown'), 'error');
+        showNotification(t('highlights.errorCreating') + ': ' + (result?.error || 'Unknown'), 'error');
     }
 }
 
@@ -4995,24 +4994,24 @@ function renderHighlightsList(highlights) {
 async function loadHighlight(path) {
     const result = await apiCall('/api/highlights/load', 'POST', { path: path });
     if (result && result.success) {
-        showNotification('Highlights caricato in OBS', 'success');
+        showNotification(t('highlights.loaded'), 'success');
         closeHighlightsModal();
     } else {
-        showNotification('Errore caricamento highlights: ' + (result?.error || 'Unknown'), 'error');
+        showNotification(t('highlights.errorLoading') + ': ' + (result?.error || 'Unknown'), 'error');
     }
 }
 
 async function deleteHighlight(path) {
-    if (!confirm('Eliminare questo highlights?')) {
+    if (!confirm(t('highlights.confirmDeleteHighlight'))) {
         return;
     }
 
     const result = await apiCall('/api/highlights/delete', 'POST', { path: path });
     if (result && result.success) {
-        showNotification('Highlights eliminato', 'success');
+        showNotification(t('highlights.deleted'), 'success');
         await loadHighlightsList();
     } else {
-        showNotification('Errore eliminazione highlights: ' + (result?.error || 'Unknown'), 'error');
+        showNotification(t('highlights.errorDeleting') + ': ' + (result?.error || 'Unknown'), 'error');
     }
 }
 
@@ -5390,30 +5389,30 @@ async function checkForUpdates() {
     const updateInfo = document.getElementById('update-info');
 
     btn.disabled = true;
-    btn.innerHTML = '<span>⏳</span><span>Verificando...</span>';
-    status.textContent = 'Verifica in corso...';
+    btn.innerHTML = `<span>⏳</span><span>${t('about.checking')}</span>`;
+    status.textContent = t('about.checking');
 
     const data = await apiCall('/api/check-updates');
 
     btn.disabled = false;
-    btn.innerHTML = '<span>🔄</span><span>Verifica aggiornamenti</span>';
+    btn.innerHTML = `<span>🔄</span><span>${t('about.checkUpdates')}</span>`;
 
     if (!data || !data.success) {
-        status.textContent = data?.error || 'Errore durante la verifica';
+        status.textContent = data?.error || t('about.checkError');
         updateInfo.style.display = 'none';
-        showNotification('Errore verifica aggiornamenti', 'error');
+        showNotification(t('about.errorChecking'), 'error');
         return;
     }
 
     document.getElementById('current-version').textContent = data.current_version;
 
     if (data.update_available) {
-        status.textContent = 'Aggiornamento disponibile!';
+        status.textContent = t('about.updateAvailable');
         status.style.color = 'var(--accent-success)';
         updateInfo.style.display = 'block';
         document.getElementById('new-version').textContent = data.latest_version;
         document.getElementById('release-link').href = data.release_url;
-        document.getElementById('release-notes').textContent = data.release_notes || 'Nessuna nota di rilascio';
+        document.getElementById('release-notes').textContent = data.release_notes || t('about.noReleaseNotes');
 
         // Mostra badge pre-release se applicabile
         const prereleaseBadge = document.getElementById('prerelease-badge');
@@ -5430,7 +5429,7 @@ async function checkForUpdates() {
             if (data.assets.length > 1) {
                 const btnAll = document.createElement('button');
                 btnAll.className = 'header-btn primary';
-                btnAll.innerHTML = `<span>⬇️</span><span>Installa tutto</span>`;
+                btnAll.innerHTML = `<span>⬇️</span><span>${t('about.installAll')}</span>`;
                 btnAll.onclick = () => installAllUpdates(data.assets);
                 assetsContainer.appendChild(btnAll);
             }
@@ -5447,12 +5446,12 @@ async function checkForUpdates() {
             });
         }
 
-        showNotification(`Nuova versione disponibile: ${data.latest_version}`, 'success');
+        showNotification(`${t('about.newVersionAvailable')}: ${data.latest_version}`, 'success');
     } else {
-        status.textContent = `Hai l'ultima versione (${data.current_version})`;
+        status.textContent = `${t('about.alreadyLatest')} (${data.current_version})`;
         status.style.color = 'var(--text-secondary)';
         updateInfo.style.display = 'none';
-        showNotification('Sei già aggiornato!', 'success');
+        showNotification(t('about.alreadyUpToDate'), 'success');
     }
 }
 
@@ -5463,8 +5462,8 @@ async function setUpdateChannel(channel) {
         document.querySelectorAll('.channel-btn').forEach(btn => btn.classList.remove('active'));
         document.getElementById(`channel-${channel}`).classList.add('active');
 
-        const channelName = channel === 'beta' ? 'Beta (include pre-release)' : 'Stabile';
-        showNotification(`Canale aggiornamenti: ${channelName}`, 'success');
+        const channelName = channel === 'beta' ? t('about.betaChannel') : t('about.stableChannel');
+        showNotification(`${t('about.updateChannel')}: ${channelName}`, 'success');
     }
 }
 
@@ -5544,7 +5543,7 @@ async function setTheme(theme) {
 
 async function openFolder() {
     await apiCall('/api/open-folder', 'POST');
-    showNotification('Apertura cartella...', 'info');
+    showNotification(t('notifications.openingFolder'), 'info');
 }
 
 // ==================== HIDDEN VIDEOS FUNCTIONS ====================
@@ -5584,18 +5583,18 @@ async function unhideVideo(path) {
         await loadHiddenVideos();
         await loadReplays();
         renderHiddenVideos();
-        showNotification('Video ripristinato', 'success');
+        showNotification(t('notifications.videoRestored'), 'success');
     }
 }
 
 async function unhideAll() {
-    if (confirm('Mostrare tutti i video nascosti?')) {
+    if (confirm(t('dialogs.confirmUnhideAll'))) {
         const result = await apiCall('/api/unhide-all', 'POST');
         if (result && result.success) {
             await loadHiddenVideos();
             await loadReplays();
             renderHiddenVideos();
-            showNotification('Tutti i video ripristinati', 'success');
+            showNotification(t('notifications.allVideosRestored'), 'success');
         }
     }
 }

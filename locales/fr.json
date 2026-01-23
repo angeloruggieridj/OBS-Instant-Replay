@@ -33,7 +33,14 @@
     "settingsSaved": "Paramètres enregistrés",
     "configExported": "Configuration exportée",
     "configImported": "Configuration importée",
-    "importError": "Erreur d'importation"
+    "importError": "Erreur d'importation",
+    "folderSelected": "Dossier sélectionné",
+    "exportError": "Erreur d'exportation",
+    "fileReadError": "Erreur lecture fichier",
+    "nextVideoLoaded": "Vidéo suivante chargée",
+    "openingFolder": "Ouverture du dossier...",
+    "videoRestored": "Vidéo restaurée",
+    "allVideosRestored": "Toutes les vidéos restaurées"
   },
   "playlist": {
     "title": "Playlist / File",
@@ -51,7 +58,12 @@
     "playbackQueue": "File de lecture",
     "createHighlights": "Créer Highlights depuis la file",
     "videosInQueue": "vidéos",
-    "totalDuration": "Durée totale"
+    "totalDuration": "Durée totale",
+    "movedToTop": "Déplacé en haut",
+    "movedToBottom": "Déplacé en bas",
+    "movedUp": "Déplacé vers le haut",
+    "movedDown": "Déplacé vers le bas",
+    "noVideosInQueue": "Aucune vidéo dans la file"
   },
   "settings": {
     "title": "Paramètres",
@@ -108,7 +120,8 @@
     "newCategoryName": "Nouveau nom de catégorie:",
     "renamePrompt": "Nouveau nom pour la vidéo:",
     "confirmDelete": "Supprimer définitivement",
-    "confirmDeleteCategory": "Supprimer la catégorie"
+    "confirmDeleteCategory": "Supprimer la catégorie",
+    "confirmUnhideAll": "Afficher toutes les vidéos masquées?"
   },
   "themes": {
     "title": "Thèmes",
@@ -123,18 +136,36 @@
     "version": "Version",
     "checkUpdates": "Vérifier mises à jour",
     "checking": "Vérification...",
-    "updateAvailable": "Mise à jour disponible",
+    "updateAvailable": "Mise à jour disponible!",
     "upToDate": "À jour",
     "channel": "Canal de mise à jour",
     "stable": "Stable",
-    "beta": "Bêta"
+    "beta": "Bêta",
+    "updating": "Mise à jour...",
+    "errorChecking": "Erreur vérification mises à jour",
+    "checkError": "Erreur lors de la vérification",
+    "noReleaseNotes": "Pas de notes de version",
+    "installAll": "Tout installer",
+    "newVersionAvailable": "Nouvelle version disponible",
+    "alreadyLatest": "Vous avez la dernière version",
+    "alreadyUpToDate": "Déjà à jour!",
+    "updateChannel": "Canal de mise à jour",
+    "betaChannel": "Bêta (inclut pré-version)",
+    "stableChannel": "Stable"
   },
   "tooltips": {
     "favorite": "Favori",
     "loadInOBS": "Charger dans OBS",
     "addToQueue": "Ajouter à la file",
     "hide": "Masquer",
-    "delete": "Supprimer"
+    "delete": "Supprimer",
+    "playlist": "Playlist",
+    "highlights": "Highlights",
+    "refresh": "Actualiser",
+    "moveToTop": "Déplacer en haut",
+    "moveUp": "Monter",
+    "moveDown": "Descendre",
+    "moveToBottom": "Déplacer en bas"
   },
   "speed": {
     "label": "Vitesse"
@@ -143,11 +174,30 @@
     "serverError": "Erreur de communication serveur",
     "errorDeleting": "Erreur suppression",
     "errorRenaming": "Erreur renommage",
-    "fileNotFound": "Fichier non trouvé"
+    "fileNotFound": "Fichier non trouvé",
+    "dialogError": "Erreur ouverture dialogue",
+    "invalidConfigFile": "Fichier de configuration invalide",
+    "fileAlreadyExists": "Un fichier avec ce nom existe déjà"
   },
   "categoryMenu": {
     "rename": "Renommer",
     "changeColor": "Changer couleur",
     "delete": "Supprimer"
+  },
+  "highlights": {
+    "title": "Highlights Créés",
+    "howToCreate": "Comment créer des highlights:",
+    "howToCreateDesc": "Ajoutez des vidéos à la file, réorganisez-les comme vous le souhaitez, puis cliquez sur \"Créer Highlights depuis la file\" dans la section Playlist.",
+    "load": "Charger",
+    "loaded": "Highlights chargé dans OBS",
+    "deleted": "Highlights supprimé",
+    "created": "Highlights créé",
+    "creating": "Création des highlights...",
+    "confirmCreate": "Créer highlights depuis",
+    "confirmLoad": "Charger la vidéo highlights maintenant?",
+    "errorCreating": "Erreur création highlights",
+    "errorLoading": "Erreur chargement highlights",
+    "errorDeleting": "Erreur suppression highlights",
+    "confirmDeleteHighlight": "Supprimer ce highlights?"
   }
 }

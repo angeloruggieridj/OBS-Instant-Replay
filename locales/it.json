@@ -33,7 +33,14 @@
     "settingsSaved": "Impostazioni salvate",
     "configExported": "Configurazione esportata",
     "configImported": "Configurazione importata",
-    "importError": "Errore importazione"
+    "importError": "Errore importazione",
+    "folderSelected": "Cartella selezionata",
+    "exportError": "Errore esportazione",
+    "fileReadError": "Errore lettura file",
+    "nextVideoLoaded": "Prossimo video caricato",
+    "openingFolder": "Apertura cartella...",
+    "videoRestored": "Video ripristinato",
+    "allVideosRestored": "Tutti i video ripristinati"
   },
   "playlist": {
     "title": "Playlist / Coda",
@@ -51,7 +58,12 @@
     "playbackQueue": "Coda Riproduzione",
     "createHighlights": "Crea Highlights dalla coda",
     "videosInQueue": "video",
-    "totalDuration": "Durata totale"
+    "totalDuration": "Durata totale",
+    "movedToTop": "Spostato in cima",
+    "movedToBottom": "Spostato in fondo",
+    "movedUp": "Spostato su",
+    "movedDown": "Spostato giù",
+    "noVideosInQueue": "Nessun video in coda"
   },
   "settings": {
     "title": "Impostazioni",
@@ -108,7 +120,8 @@
     "newCategoryName": "Nuovo nome categoria:",
     "renamePrompt": "Nuovo nome per il video:",
     "confirmDelete": "Eliminare definitivamente",
-    "confirmDeleteCategory": "Eliminare la categoria"
+    "confirmDeleteCategory": "Eliminare la categoria",
+    "confirmUnhideAll": "Mostrare tutti i video nascosti?"
   },
   "themes": {
     "title": "Temi",
@@ -123,18 +136,36 @@
     "version": "Versione",
     "checkUpdates": "Verifica aggiornamenti",
     "checking": "Verificando...",
-    "updateAvailable": "Aggiornamento disponibile",
+    "updateAvailable": "Aggiornamento disponibile!",
     "upToDate": "Aggiornato",
     "channel": "Canale aggiornamenti",
     "stable": "Stabile",
-    "beta": "Beta"
+    "beta": "Beta",
+    "updating": "Aggiornamento in corso...",
+    "errorChecking": "Errore verifica aggiornamenti",
+    "checkError": "Errore durante la verifica",
+    "noReleaseNotes": "Nessuna nota di rilascio",
+    "installAll": "Installa tutto",
+    "newVersionAvailable": "Nuova versione disponibile",
+    "alreadyLatest": "Hai l'ultima versione",
+    "alreadyUpToDate": "Sei già aggiornato!",
+    "updateChannel": "Canale aggiornamenti",
+    "betaChannel": "Beta (include pre-release)",
+    "stableChannel": "Stabile"
   },
   "tooltips": {
     "favorite": "Preferito",
     "loadInOBS": "Carica in OBS",
     "addToQueue": "Aggiungi a coda",
     "hide": "Nascondi",
-    "delete": "Elimina"
+    "delete": "Elimina",
+    "playlist": "Playlist",
+    "highlights": "Highlights",
+    "refresh": "Aggiorna",
+    "moveToTop": "Sposta in cima",
+    "moveUp": "Sposta su",
+    "moveDown": "Sposta giù",
+    "moveToBottom": "Sposta in fondo"
   },
   "speed": {
     "label": "Velocità"
@@ -143,11 +174,30 @@
     "serverError": "Errore comunicazione server",
     "errorDeleting": "Errore eliminazione",
     "errorRenaming": "Errore rinomina",
-    "fileNotFound": "File non trovato"
+    "fileNotFound": "File non trovato",
+    "dialogError": "Errore apertura dialog",
+    "invalidConfigFile": "File di configurazione non valido",
+    "fileAlreadyExists": "File con questo nome esiste già"
   },
   "categoryMenu": {
     "rename": "Rinomina",
     "changeColor": "Cambia colore",
     "delete": "Elimina"
+  },
+  "highlights": {
+    "title": "Highlights Creati",
+    "howToCreate": "Come creare highlights:",
+    "howToCreateDesc": "Aggiungi video alla coda, riordina come preferisci, poi clicca \"Crea Highlights da coda\" nella sezione Playlist.",
+    "load": "Carica",
+    "loaded": "Highlights caricato in OBS",
+    "deleted": "Highlights eliminato",
+    "created": "Highlights creato",
+    "creating": "Creazione highlights in corso...",
+    "confirmCreate": "Creare highlights da",
+    "confirmLoad": "Caricare il video highlights ora?",
+    "errorCreating": "Errore creazione highlights",
+    "errorLoading": "Errore caricamento highlights",
+    "errorDeleting": "Errore eliminazione highlights",
+    "confirmDeleteHighlight": "Eliminare questo highlights?"
   }
 }
