@@ -86,6 +86,20 @@ if exist "%SCRIPT_DIR%replay_http_server.py" (
     set "COPY_SUCCESS=0"
 )
 
+:: Copy locales folder
+if exist "%SCRIPT_DIR%locales" (
+    if not exist "%OBS_SCRIPTS%\locales" mkdir "%OBS_SCRIPTS%\locales" >nul 2>&1
+    xcopy /Y /Q "%SCRIPT_DIR%locales\*.json" "%OBS_SCRIPTS%\locales\" >nul 2>&1
+    if !errorLevel! equ 0 (
+        echo      [OK] locales folder (i18n translations)
+    ) else (
+        echo      [ERROR] Failed to copy locales folder
+        set "COPY_SUCCESS=0"
+    )
+) else (
+    echo      [!] locales folder not found (optional)
+)
+
 :: Done
 echo.
 if "%COPY_SUCCESS%"=="1" (

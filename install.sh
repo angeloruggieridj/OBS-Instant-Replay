@@ -127,6 +127,20 @@ else
     COPY_SUCCESS=0
 fi
 
+# Copy locales folder
+if [ -d "$SCRIPT_DIR/locales" ]; then
+    mkdir -p "$OBS_SCRIPTS/locales"
+    cp "$SCRIPT_DIR/locales/"*.json "$OBS_SCRIPTS/locales/" 2>/dev/null
+    if [ $? -eq 0 ]; then
+        echo -e "     ${GREEN}[OK]${NC} locales folder (i18n translations)"
+    else
+        echo -e "     ${RED}[ERROR]${NC} Failed to copy locales folder"
+        COPY_SUCCESS=0
+    fi
+else
+    echo -e "     ${YELLOW}[!]${NC} locales folder not found (optional)"
+fi
+
 # Done
 echo ""
 if [ "$COPY_SUCCESS" -eq 1 ]; then
