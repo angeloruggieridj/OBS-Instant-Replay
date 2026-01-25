@@ -107,7 +107,8 @@
     "hiddenVideosWillAppear": "Ausgeblendete Videos werden hier angezeigt",
     "all": "Alle",
     "noVideosFound": "Keine Videos gefunden",
-    "checkFiltersOrAddReplays": "Filter prüfen oder neue Replays hinzufügen"
+    "checkFiltersOrAddReplays": "Filter prüfen oder neue Replays hinzufügen",
+    "loadingConfig": "Konfiguration wird geladen..."
   },
   "controls": {
     "play": "Abspielen",

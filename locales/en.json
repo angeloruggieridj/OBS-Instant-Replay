@@ -107,7 +107,8 @@
     "hiddenVideosWillAppear": "Hidden videos will appear here",
     "all": "All",
     "noVideosFound": "No videos found",
-    "checkFiltersOrAddReplays": "Check filters or add new replays"
+    "checkFiltersOrAddReplays": "Check filters or add new replays",
+    "loadingConfig": "Loading configuration..."
   },
   "controls": {
     "play": "Play",

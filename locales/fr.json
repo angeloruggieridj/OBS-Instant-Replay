@@ -107,7 +107,8 @@
     "hiddenVideosWillAppear": "Les vidéos masquées apparaîtront ici",
     "all": "Tous",
     "noVideosFound": "Aucune vidéo trouvée",
-    "checkFiltersOrAddReplays": "Vérifiez les filtres ou ajoutez de nouveaux replays"
+    "checkFiltersOrAddReplays": "Vérifiez les filtres ou ajoutez de nouveaux replays",
+    "loadingConfig": "Chargement de la configuration..."
   },
   "controls": {
     "play": "Lecture",

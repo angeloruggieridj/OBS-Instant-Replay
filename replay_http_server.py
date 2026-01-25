@@ -3133,7 +3133,7 @@ body {
 <div class="loading-overlay" id="loading-overlay">
     <div class="loading-content">
         <div class="loading-spinner"></div>
-        <div class="loading-text">Caricamento configurazione...</div>
+        <div class="loading-text" data-i18n="ui.loadingConfig">Loading configuration...</div>
     </div>
 </div>
 
